@@ -1,0 +1,214 @@
+import fs from 'fs';
+import { createJiti } from 'jiti';
+import path from 'pathe';
+import resolve from 'resolve';
+import { AgentManager } from '../agent/agent/agentManager';
+import { BackgroundTaskManager } from './backgroundTaskManager';
+import { type Config, ConfigManager } from '../core/config';
+import { MCPManager } from '../mcp/mcp';
+import type { MessageBus } from '../communication/messageBus';
+import { Paths } from './paths';
+import {
+  type Plugin,
+  type PluginApplyOpts,
+  PluginHookType,
+  PluginManager,
+} from '../core/plugin';
+// notificationSoundPlugin is CLI-specific, not needed in engine
+// import { notificationSoundPlugin } from '../plugins/notification';
+import { SkillManager } from '../skill/skill';
+
+type ContextOpts = {
+  cwd: string;
+  productName: string;
+  productASCIIArt?: string;
+  version: string;
+  config: Config;
+  pluginManager: PluginManager;
+  paths: Paths;
+  argvConfig: Record<string, any>;
+  mcpManager: MCPManager;
+  backgroundTaskManager: BackgroundTaskManager;
+  skillManager?: SkillManager;
+  messageBus?: MessageBus;
+  agentManager?: AgentManager;
+  plugins: (string | Plugin)[];
+  fetch?: typeof globalThis.fetch;
+};
+
+export type ContextCreateOpts = {
+  cwd: string;
+  productName: string;
+  productASCIIArt?: string;
+  version: string;
+  argvConfig: Record<string, any>;
+  plugins: (string | Plugin)[];
+  messageBus?: MessageBus;
+  fetch?: typeof globalThis.fetch;
+};
+
+export class Context {
+  cwd: string;
+  productName: string;
+  productASCIIArt?: string;
+  version: string;
+  config: Config;
+  paths: Paths;
+  #pluginManager: PluginManager;
+  argvConfig: Record<string, any>;
+  mcpManager: MCPManager;
+  backgroundTaskManager: BackgroundTaskManager;
+  skillManager?: SkillManager;
+  messageBus?: MessageBus;
+  agentManager?: AgentManager;
+  plugins: (string | Plugin)[];
+  fetch?: typeof globalThis.fetch;
+  constructor(opts: ContextOpts) {
+    this.cwd = opts.cwd;
+    this.productName = opts.productName;
+    this.productASCIIArt = opts.productASCIIArt;
+    this.version = opts.version;
+    this.config = opts.config;
+    this.paths = opts.paths;
+    this.mcpManager = opts.mcpManager;
+    this.#pluginManager = opts.pluginManager;
+    this.argvConfig = opts.argvConfig;
+    this.backgroundTaskManager = opts.backgroundTaskManager;
+    this.skillManager = opts.skillManager;
+    this.messageBus = opts.messageBus;
+    this.agentManager = opts.agentManager;
+    this.plugins = opts.plugins;
+    this.fetch = opts.fetch;
+  }
+
+  async apply(applyOpts: Omit<PluginApplyOpts, 'pluginContext'>) {
+    return this.#pluginManager.apply({
+      ...applyOpts,
+      pluginContext: this,
+    });
+  }
+
+  async destroy() {
+    await this.mcpManager.destroy();
+    await this.apply({
+      hook: 'destroy',
+      args: [],
+      type: PluginHookType.Parallel,
+    });
+  }
+
+  static async create(opts: ContextCreateOpts) {
+    const { cwd, version, productASCIIArt } = opts;
+    const productName = opts.productName.toLowerCase();
+    const paths = new Paths({
+      productName,
+      cwd,
+    });
+    const configManager = new ConfigManager(
+      cwd,
+      productName,
+      opts.argvConfig || {},
+    );
+    const initialConfig = configManager.config;
+    // notificationSoundPlugin is CLI-specific, not needed in engine
+    const buildInPlugins: Plugin[] = []; // [notificationSoundPlugin];
+    const globalPlugins = scanPlugins(
+      path.join(paths.globalConfigDir, 'plugins'),
+    );
+    const projectPlugins = scanPlugins(
+      path.join(paths.projectConfigDir, 'plugins'),
+    );
+    const pluginsConfigs: (string | Plugin)[] = [
+      ...buildInPlugins,
+      ...globalPlugins,
+      ...projectPlugins,
+      ...(initialConfig.plugins || []),
+      ...(opts.plugins || []),
+    ];
+    const plugins = await normalizePlugins(opts.cwd, pluginsConfigs);
+    const pluginManager = new PluginManager(plugins);
+    const apply = async (hookOpts: any) => {
+      return pluginManager.apply({ ...hookOpts, pluginContext: tempContext });
+    };
+    const tempContext = {
+      ...opts,
+      config: initialConfig,
+      apply,
+      pluginManager,
+    };
+    const resolvedConfig = await apply({
+      hook: 'config',
+      args: [{ config: initialConfig, argvConfig: opts.argvConfig }],
+      memo: initialConfig,
+      type: PluginHookType.SeriesMerge,
+    });
+    tempContext.config = resolvedConfig;
+    const mcpServers = {
+      ...(resolvedConfig.mcpServers || {}),
+      ...opts.argvConfig.mcpServers,
+    };
+    const mcpManager = MCPManager.create(mcpServers);
+    const backgroundTaskManager = new BackgroundTaskManager();
+
+    const context = new Context({
+      cwd,
+      productName,
+      productASCIIArt,
+      version,
+      pluginManager,
+      argvConfig: opts.argvConfig,
+      config: resolvedConfig,
+      paths,
+      mcpManager,
+      backgroundTaskManager,
+      messageBus: opts.messageBus,
+      plugins: pluginsConfigs,
+      fetch: opts.fetch,
+    });
+
+    // Create and attach SkillManager
+    const skillManager = new SkillManager({ context });
+    await skillManager.loadSkills();
+    context.skillManager = skillManager;
+
+    // Create and attach AgentManager
+    const agentManager = new AgentManager({ context });
+    // Load agents from files
+    await agentManager.loadAgents();
+    context.agentManager = agentManager;
+
+    return context;
+  }
+}
+
+function normalizePlugins(cwd: string, plugins: (string | Plugin)[]) {
+  let jiti: any = null;
+  return Promise.all(
+    plugins.map(async (plugin) => {
+      if (typeof plugin === 'string') {
+        const pluginPath = resolve.sync(plugin, { basedir: cwd });
+        if (!jiti) {
+          jiti = createJiti(import.meta.url);
+        }
+        return (await jiti.import(pluginPath, {
+          default: true,
+        })) as Plugin;
+      }
+      return plugin;
+    }),
+  );
+}
+
+function scanPlugins(pluginDir: string): string[] {
+  try {
+    if (!fs.existsSync(pluginDir)) {
+      return [];
+    }
+    const files = fs.readdirSync(pluginDir);
+    return files
+      .filter((file) => file.endsWith('.js') || file.endsWith('.ts'))
+      .map((file) => path.join(pluginDir, file));
+  } catch (_error) {
+    return [];
+  }
+}

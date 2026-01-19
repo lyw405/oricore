@@ -1,0 +1,104 @@
+{
+  "name": "oricore",
+  "version": "1.0.0",
+  "description": "OriCore - A powerful AI engine with multi-modal support, tool calling, and extensible architecture",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target=node && tsc --emitDeclarationOnly --declarationDir dist",
+    "dev": "bun --watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test/*",
+    "example": "bun examples/basic.ts",
+    "prepublishOnly": "bun run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [
+    "oricore",
+    "ai",
+    "coding",
+    "assistant",
+    "engine",
+    "llm",
+    "tool-calling",
+    "mcp",
+    "skill",
+    "agent"
+  ],
+  "author": "lyw405",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lyw405/oricore.git"
+  },
+  "homepage": "https://github.com/lyw405/oricore#readme",
+  "bugs": {
+    "url": "https://github.com/lyw405/oricore/issues"
+  },
+  "dependencies": {
+    "@ai-sdk/mcp": "^0.0.12",
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "fastmcp": "^3.25.4",
+    "zod": "^4.1.13",
+    "pathe": "^2.0.3",
+    "degit": "^2.8.4",
+    "defu": "^6.1.4",
+    "debug": "^4.4.3",
+    "jiti": "^2.6.1",
+    "resolve": "^1.22.11",
+    "ws": "^8.18.3",
+    "@ai-sdk/anthropic": "^2.0.56",
+    "@ai-sdk/cerebras": "^1.0.33",
+    "@ai-sdk/google": "^2.0.46",
+    "@ai-sdk/huggingface": "^0.0.12",
+    "@ai-sdk/openai": "^2.0.86",
+    "@ai-sdk/openai-compatible": "^1.0.29",
+    "@ai-sdk/xai": "^2.0.40",
+    "@aihubmix/ai-sdk-provider": "^0.0.6",
+    "@openrouter/ai-sdk-provider": "^1.5.3",
+    "oauth-providers": "^1.0.2",
+    "glob": "^13.0.0",
+    "tar": "^7.5.2",
+    "turndown": "^7.2.2",
+    "gpt-tokenizer": "^3.4.0",
+    "diff": "^8.0.2",
+    "spawn-rx": "^5.1.2",
+    "front-matter": "^4.0.2",
+    "chardet": "^2.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/debug": "^4.1.12",
+    "@types/diff": "^6.0.0",
+    "@types/node": "^25.0.2",
+    "@types/resolve": "^1.20.6",
+    "@types/turndown": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "bun": "^1.2.7",
+    "eslint": "^9.39.2",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
+  },
+  "peerDependencies": {
+    "ai": "^5.0.113"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
