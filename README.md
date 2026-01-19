@@ -1,6 +1,6 @@
-# OriCore
-
 <div align="center">
+
+# OriCore
 
 **A powerful, standalone AI coding engine with multi-model support, tool calling, and extensible architecture**
 
