@@ -1,7 +1,7 @@
-export const PRODUCT_NAME = 'AI ENGINE';
+export const PRODUCT_NAME = 'OriCore';
 export const PRODUCT_ASCII_ART = `
-█▀▀ █▀█ █▀▄ █▀▀
-█▄▄ █▄█ █▄▀ ██▄
+█▀█ █▀▄ █ █▀▀ █▀█ █▀▄ █▀▀
+█▄█ █▀▄ █ █▄▄ █▄█ █▀▄ ██▄
 `.trim();
 export const DEFAULT_OUTPUT_STYLE_NAME = 'Default';
 export const IMAGE_EXTENSIONS = new Set([
