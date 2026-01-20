@@ -107,7 +107,8 @@ export type ThinkingConfig = {
 };
 
 type RunLoopOpts = {
-  input: string | NormalizedMessage[];
+  input?: string | NormalizedMessage[];
+  history?: History;
   model: ModelInfo;
   tools: Tools;
   cwd: string;
@@ -147,8 +148,43 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
   let finalText = '';
   let lastUsage = Usage.empty();
   const totalUsage = Usage.empty();
-  const history = new History({
-    messages: Array.isArray(opts.input)
+
+  // Create or use history
+  let history: History;
+  if (opts.history) {
+    // Use existing history (for session continuation)
+    history = opts.history;
+    // Set onMessage callback if not already set
+    if (!history.onMessage && opts.onMessage) {
+      history.onMessage = opts.onMessage;
+    }
+    // Add new input to history if provided
+    if (opts.input !== undefined) {
+      const lastMessage = history.messages[history.messages.length - 1];
+      const parentUuid = lastMessage?.uuid || null;
+      const inputMessages: NormalizedMessage[] = Array.isArray(opts.input)
+        ? opts.input
+        : [
+            {
+              role: 'user',
+              content: opts.input,
+              type: 'message',
+              timestamp: new Date().toISOString(),
+              uuid: randomUUID(),
+              parentUuid,
+            },
+          ];
+      for (const msg of inputMessages) {
+        await history.addMessage(msg);
+      }
+    }
+  } else if (opts.input !== undefined) {
+    // Create new history from input (for single requests)
+    history = new History({
+      messages: [],
+      onMessage: opts.onMessage,
+    });
+    const inputMessages: NormalizedMessage[] = Array.isArray(opts.input)
       ? opts.input
       : [
           {
@@ -159,9 +195,13 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
             uuid: randomUUID(),
             parentUuid: null,
           },
-        ],
-    onMessage: opts.onMessage,
-  });
+        ];
+    for (const msg of inputMessages) {
+      await history.addMessage(msg);
+    }
+  } else {
+    throw new Error('Either input or history must be provided to runLoop');
+  }
 
   const maxTurns = opts.maxTurns ?? DEFAULT_MAX_TURNS;
   const abortController = new AbortController();

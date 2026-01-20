@@ -14,6 +14,7 @@ import type { PlatformAdapter } from '../platform';
 import { NodePlatform } from '../platform/node';
 import type { Session } from '../session/session';
 import { Session as createSession } from '../session/session';
+import { JsonlLogger } from '../jsonl';
 import { resolveModelWithContext } from '../core/model';
 import { runLoop, type LoopResult } from '../core/loop';
 import { resolveTools, Tools } from '../tools/tool';
@@ -85,6 +86,8 @@ export interface SessionOptions {
 export interface SendMessageOptions {
   /** Message content (string or message array) */
   message: string | NormalizedMessage[];
+  /** Session ID for persistent conversations */
+  sessionId?: string;
   /** Enable write tools (default: true) */
   write?: boolean;
   /** Enable todo tools (default: true) */
@@ -128,6 +131,7 @@ export class Engine {
   private options: EngineOptions;
   private initialized = false;
   private currentMode: ModeType = 'default';
+  private jsonlLoggers: Map<string, JsonlLogger> = new Map();
 
   constructor(options: EngineOptions) {
     this.options = options;
@@ -220,7 +224,32 @@ export class Engine {
       await this.context.destroy();
       this.context = null;
     }
+    this.jsonlLoggers.clear();
     this.initialized = false;
+  }
+
+  /**
+   * Get or create a JsonlLogger for a session
+   */
+  private getLogger(sessionId: string): JsonlLogger {
+    if (!this.jsonlLoggers.has(sessionId)) {
+      if (!this.context) {
+        throw new Error('Context not available');
+      }
+      const logPath = this.context.paths.getSessionLogPath(sessionId);
+      this.jsonlLoggers.set(sessionId, new JsonlLogger({ filePath: logPath }));
+    }
+    return this.jsonlLoggers.get(sessionId)!;
+  }
+
+  /**
+   * Get list of all sessions
+   */
+  getSessions() {
+    if (!this.context) {
+      throw new Error('Context not available');
+    }
+    return this.context.paths.getAllSessions();
   }
 
   /**
@@ -245,10 +274,16 @@ export class Engine {
       throw new Error(`Failed to resolve model: ${modelId}`);
     }
 
+    // Get or create session ID
+    const sessionId = options.sessionId || this.generateSessionId();
+
+    // Get logger for this session
+    const logger = this.getLogger(sessionId);
+
     // Resolve available tools
     const toolsList = await resolveTools({
       context,
-      sessionId: this.generateSessionId(),
+      sessionId,
       write: options.write !== false,
       todo: options.todo !== false,
       askUserQuestion: options.askUserQuestion || false,
@@ -259,9 +294,41 @@ export class Engine {
     // Get system prompt from config
     const systemPrompt = context.config.systemPrompt || '';
 
+    // Load existing session history if session exists
+    let sessionHistory: import('../core/history').History | undefined = undefined;
+    if (options.sessionId) {
+      const { loadSessionMessages } = await import('../session/session');
+      const logPath = context.paths.getSessionLogPath(sessionId);
+      try {
+        const existingMessages = loadSessionMessages({ logPath });
+        if (existingMessages.length > 0) {
+          const { History } = await import('../core/history');
+          sessionHistory = new History({
+            messages: existingMessages,
+          });
+        }
+      } catch {
+        // Session doesn't exist yet, will be created
+      }
+    }
+
+    // Create the persistence callback that will be used by history.addMessage
+    const onMessageCallback = async (message: import('../core/message').NormalizedMessage) => {
+      // Persist all messages (user, assistant, tool) to session log
+      // We add sessionId here for tracking
+      logger.addMessage({ message: { ...message, sessionId } });
+    };
+
+    // If we have session history, set its onMessage callback
+    if (sessionHistory && !sessionHistory.onMessage) {
+      sessionHistory.onMessage = onMessageCallback;
+    }
+
     // Run the conversation loop
+    // The history's onMessage callback will handle persistence
     return runLoop({
       input: options.message,
+      history: sessionHistory,
       model: resolvedModel.model,
       tools: new Tools(toolsList),
       cwd: context.cwd,
@@ -275,6 +342,7 @@ export class Engine {
       onToolResult: options.onToolResult,
       onToolApprove: options.onToolApprove,
       onTurn: options.onTurn,
+      onMessage: sessionHistory?.onMessage || onMessageCallback,
     });
   }
 

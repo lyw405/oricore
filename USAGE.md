@@ -293,13 +293,65 @@ const result = await engine.sendMessageWithMode('Help design a type-safe API');
 
 ## Session Management
 
+Sessions enable persistent conversations across multiple calls. The AI remembers the context from previous messages in the same session.
+
+### Using Sessions with sendMessage
+
+The easiest way to use sessions is to pass a `sessionId` to `sendMessage`:
+
+```typescript
+// Start a new session
+const sessionId = 'my-conversation-' + Date.now();
+
+// First message - establishes context
+await engine.sendMessage({
+  sessionId,
+  message: 'Remember that my name is Alice',
+  write: false,
+});
+
+// Continue the same session - AI remembers the context
+const result = await engine.sendMessage({
+  sessionId,
+  message: 'What is my name?',
+  write: false,
+});
+
+console.log(result.data.text); // "Your name is Alice!"
+```
+
+### Session Storage
+
+Sessions are automatically persisted to disk:
+- **Global sessions**: `~/.oricore/projects/<formatted-cwd>/<sessionId>.jsonl`
+- **Custom paths**: You can also use absolute or relative paths as `sessionId`
+
+### Listing Sessions
+
+```typescript
+// Get all sessions for the current project
+const sessions = engine.getSessions();
+
+sessions.forEach(session => {
+  console.log(`Session: ${session.sessionId}`);
+  console.log(`  Messages: ${session.messageCount}`);
+  console.log(`  Summary: ${session.summary}`);
+  console.log(`  Modified: ${session.modified}`);
+});
+```
+
+### Creating Session Objects
+
+You can also create session objects directly:
+
 ```typescript
 // Create a new session
 const session = await engine.createSession();
+console.log('Session ID:', session.id);
 
-// Resume from session ID
+// Resume from existing session ID
 const session = await engine.createSession({
-  resume: 'session-id-here',
+  resume: 'abc12345',
 });
 
 // Resume latest session
@@ -308,9 +360,12 @@ const session = await engine.createSession({
 });
 ```
 
-Sessions are stored in:
-- Global: `~/.oricore/sessions/`
-- Project: `.oricore/sessions/`
+### Session Use Cases
+
+- **Multi-turn conversations**: Maintain context across multiple questions
+- **Long-running tasks**: Break complex tasks into multiple steps
+- **Collaboration**: Share session IDs with team members
+- **Debugging**: Review conversation history stored in JSONL files
 
 ---
 

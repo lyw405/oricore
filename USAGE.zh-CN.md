@@ -293,13 +293,65 @@ const result = await engine.sendMessageWithMode('帮助设计一个类型安全�
 
 ## 会话管理
 
+会话支持跨多次调用的持久化对话。AI 会记住同一会话中之前消息的上下文。
+
+### 在 sendMessage 中使用会话
+
+最简单的方法是向 `sendMessage` 传递 `sessionId`：
+
+```typescript
+// 开始新会话
+const sessionId = 'my-conversation-' + Date.now();
+
+// 第一条消息 - 建立上下文
+await engine.sendMessage({
+  sessionId,
+  message: '记住我的名字是 Alice',
+  write: false,
+});
+
+// 继续同一会话 - AI 记得住上下文
+const result = await engine.sendMessage({
+  sessionId,
+  message: '我叫什么名字？',
+  write: false,
+});
+
+console.log(result.data.text); // "你的名字是 Alice！"
+```
+
+### 会话存储
+
+会话会自动持久化到磁盘：
+- **全局会话**：`~/.oricore/projects/<格式化路径>/<sessionId>.jsonl`
+- **自定义路径**：也可以使用绝对路径或相对路径作为 `sessionId`
+
+### 列出会话
+
+```typescript
+// 获取当前项目的所有会话
+const sessions = engine.getSessions();
+
+sessions.forEach(session => {
+  console.log(`会话: ${session.sessionId}`);
+  console.log(`  消息数: ${session.messageCount}`);
+  console.log(`  摘要: ${session.summary}`);
+  console.log(`  修改时间: ${session.modified}`);
+});
+```
+
+### 创建会话对象
+
+也可以直接创建会话对象：
+
 ```typescript
 // 创建新会话
 const session = await engine.createSession();
+console.log('会话 ID:', session.id);
 
-// 从会话 ID 恢复
+// 从现有会话 ID 恢复
 const session = await engine.createSession({
-  resume: 'session-id-here',
+  resume: 'abc12345',
 });
 
 // 恢复最新会话
@@ -308,9 +360,12 @@ const session = await engine.createSession({
 });
 ```
 
-会话存储位置：
-- 全局：`~/.oricore/sessions/`
-- 项目：`.oricore/sessions/`
+### 会话使用场景
+
+- **多轮对话**：在多个问题之间保持上下文
+- **长时任务**：将复杂任务分解为多个步骤
+- **团队协作**：与团队成员共享会话 ID
+- **调试**：查看存储在 JSONL 文件中的对话历史
 
 ---
 

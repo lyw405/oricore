@@ -26,6 +26,12 @@ export * from './platform';
 // Communication layer
 export * from './communication';
 
+// Session management
+export { Session, type SessionId, type SessionConfig, SessionConfigManager, loadSessionMessages } from './session/session';
+export { JsonlLogger } from './jsonl';
+export { History } from './core/history';
+export { Usage } from './core/usage';
+
 // Core utilities
 export { randomUUID } from './utils/randomUUID';
 
