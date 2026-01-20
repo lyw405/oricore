@@ -7,6 +7,8 @@
 [![npm version](https://badge.fury.io/js/oricore.svg)](https://www.npmjs.com/package/oricore)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[English](README.md) | [中文文档](README.zh-CN.md)
+
 </div>
 
 ## About OriCore

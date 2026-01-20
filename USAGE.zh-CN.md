@@ -1,33 +1,33 @@
-# OriCore Usage Guide
+# OriCore 使用指南
 
 [English](USAGE.md) | [中文文档](USAGE.zh-CN.md)
 
-## Table of Contents
+## 目录
 
-- [Quick Start](#quick-start)
-- [Model Providers](#model-providers)
-- [Configuration Options](#configuration-options)
-- [MCP Integration](#mcp-integration)
-- [Skill System](#skill-system)
-- [Custom Modes](#custom-modes)
-- [Session Management](#session-management)
-- [Streaming Responses](#streaming-responses)
-- [Error Handling](#error-handling)
+- [快速开始](#快速开始)
+- [模型提供商](#模型提供商)
+- [配置选项](#配置选项)
+- [MCP 集成](#mcp-集成)
+- [技能系统](#技能系统)
+- [自定义模式](#自定义模式)
+- [会话管理](#会话管理)
+- [流式响应](#流式响应)
+- [错误处理](#错误处理)
 
 ---
 
-## Quick Start
+## 快速开始
 
 ```typescript
 import { createEngine } from 'oricore';
 
-// 1. Create the engine
+// 1. 创建引擎
 const engine = createEngine({
   productName: 'MyApp',
   version: '1.0.0',
 });
 
-// 2. Initialize with model and API key
+// 2. 初始化模型和 API Key
 await engine.initialize({
   model: 'zhipuai/glm-4.7',
   provider: {
@@ -38,7 +38,7 @@ await engine.initialize({
   },
 });
 
-// 3. Use it
+// 3. 使用
 const result = await engine.sendMessage({
   message: '帮我创建一个 TypeScript 函数',
   write: true,
@@ -46,29 +46,29 @@ const result = await engine.sendMessage({
 
 console.log(result.data.text);
 
-// 4. Cleanup
+// 4. 清理
 await engine.shutdown();
 ```
 
 ---
 
-## Model Providers
+## 模型提供商
 
-### Supported Providers
+### 支持的提供商
 
-| Provider | Model Format | API Base URL |
+| 提供商 | 模型格式 | API 地址 |
 |----------|--------------|--------------|
-| **Zhipu AI** | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
+| **智谱 AI** | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
 | **DeepSeek** | `deepseek/deepseek-chat` | `https://api.deepseek.com` |
 | **OpenAI** | `openai/gpt-4o` | `https://api.openai.com/v1` |
 | **Anthropic** | `anthropic/claude-sonnet-4` | `https://api.anthropic.com` |
 | **Google** | `google/gemini-2.5-flash` | `https://generativelanguage.googleapis.com` |
 | **Moonshot (Kimi)** | `moonshotai/kimi-k2` | `https://api.moonshot.cn/v1` |
-| **Qwen** | `qwen/qwen3-max` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| **Qwen (通义千问)** | `qwen/qwen3-max` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 
-### Configuration Examples
+### 配置示例
 
-**Zhipu AI (智谱)**
+**智谱 AI (Zhipu)**
 ```typescript
 await engine.initialize({
   model: 'zhipuai/glm-4.7',
@@ -135,25 +135,25 @@ await engine.initialize({
 
 ---
 
-## Configuration Options
+## 配置选项
 
-### Full Configuration
+### 完整配置
 
 ```typescript
 await engine.initialize({
-  // Model selection
+  // 模型选择
   model: 'zhipuai/glm-4.7',
   planModel: 'zhipuai/glm-4.7',
 
-  // Behavior
+  // 行为设置
   approvalMode: 'autoEdit',  // 'default' | 'autoEdit' | 'yolo'
   language: 'zh-CN',
 
-  // Custom prompts
-  systemPrompt: 'You are a helpful coding assistant.',
-  appendSystemPrompt: 'Always provide type annotations.',
+  // 自定义提示词
+  systemPrompt: '你是一个有用的编程助手。',
+  appendSystemPrompt: '始终提供类型注解。',
 
-  // Tools
+  // 工具开关
   tools: {
     read: true,
     write: true,
@@ -163,7 +163,7 @@ await engine.initialize({
     glob: true,
   },
 
-  // Provider
+  // 提供商配置
   provider: {
     zhipuai: {
       apiKey: 'your-api-key',
@@ -173,17 +173,17 @@ await engine.initialize({
 });
 ```
 
-### Tool Approval Modes
+### 工具批准模式
 
-- `default` - Ask for approval before each tool execution
-- `autoEdit` - Auto-approve read/edit tools, ask for others
-- `yolo` - Auto-approve all tools
+- `default` - 每次工具执行前都询问批准
+- `autoEdit` - 自动批准读/编辑工具，其他工具询问
+- `yolo` - 自动批准所有工具
 
 ---
 
-## MCP Integration
+## MCP 集成
 
-### Stdio Transport (Local Servers)
+### Stdio 传输（本地服务器）
 
 ```typescript
 await engine.initialize({
@@ -203,7 +203,7 @@ await engine.initialize({
 });
 ```
 
-### HTTP Transport
+### HTTP 传输
 
 ```typescript
 await engine.initialize({
@@ -224,28 +224,28 @@ await engine.initialize({
 
 ---
 
-## Skill System
+## 技能系统
 
-### Create a Skill
+### 创建技能
 
-Create `.oricore/skills/my-skill/SKILL.md`:
+创建 `.oricore/skills/my-skill/SKILL.md`：
 
 ```markdown
 ---
 name: code-reviewer
-description: Expert code reviewer for TypeScript projects
+description: TypeScript 项目专家代码审查员
 ---
 
-You are an expert TypeScript code reviewer. Focus on:
-- Type safety
-- Best practices
-- Performance
-- Security
+你是一个 TypeScript 专家代码审查员。重点关注：
+- 类型安全
+- 最佳实践
+- 性能
+- 安全性
 
-Provide constructive feedback with specific examples.
+提供具有具体示例的建设性反馈。
 ```
 
-### Install Skills from GitHub
+### 从 GitHub 安装技能
 
 ```typescript
 import { SkillManager } from 'oricore';
@@ -261,15 +261,15 @@ await skillManager.addSkill('github:user/repo', {
 
 ---
 
-## Custom Modes
+## 自定义模式
 
 ```typescript
 engine.registerMode({
   id: 'typescript-expert',
-  name: 'TypeScript Expert',
-  description: 'Specialized in TypeScript development',
+  name: 'TypeScript 专家',
+  description: '专注于 TypeScript 开发',
   config: {
-    systemPrompt: 'You are a TypeScript expert. Always provide typed examples.',
+    systemPrompt: '你是一个 TypeScript 专家。始终提供类型化示例。',
     write: true,
     askUserQuestion: true,
     maxTurns: 30,
@@ -278,77 +278,77 @@ engine.registerMode({
 
 engine.setMode('typescript-expert');
 
-const result = await engine.sendMessageWithMode('Help design a type-safe API');
+const result = await engine.sendMessageWithMode('帮助设计一个类型安全的 API');
 ```
 
-### Built-in Modes
+### 内置模式
 
-- `default` - General purpose coding assistant
-- `brainstorm` - Interactive design with questions
-- `plan` - Creates implementation plans
-- `review` - Code review and analysis
-- `debug` - Troubleshooting and debugging
+- `default` - 通用编程助手
+- `brainstorm` - 带问题的交互式设计
+- `plan` - 创建实施计划
+- `review` - 代码审查和分析
+- `debug` - 故障排除和调试
 
 ---
 
-## Session Management
+## 会话管理
 
 ```typescript
-// Create a new session
+// 创建新会话
 const session = await engine.createSession();
 
-// Resume from session ID
+// 从会话 ID 恢复
 const session = await engine.createSession({
   resume: 'session-id-here',
 });
 
-// Resume latest session
+// 恢复最新会话
 const session = await engine.createSession({
   continue: true,
 });
 ```
 
-Sessions are stored in:
-- Global: `~/.oricore/sessions/`
-- Project: `.oricore/sessions/`
+会话存储位置：
+- 全局：`~/.oricore/sessions/`
+- 项目：`.oricore/sessions/`
 
 ---
 
-## Streaming Responses
+## 流式响应
 
 ```typescript
 const result = await engine.sendMessage({
-  message: 'Explain React hooks',
+  message: '解释 React Hooks',
   write: false,
   onTextDelta: async (text) => {
-    process.stdout.write(text);  // Stream output
+    process.stdout.write(text);  // 流式输出
   },
   onToolUse: async (toolUse) => {
-    console.log('Using tool:', toolUse.name);
+    console.log('使用工具:', toolUse.name);
   },
 });
 ```
 
 ---
 
-## Error Handling
+## 错误处理
 
 ```typescript
 const result = await engine.sendMessage({
-  message: 'Create a file',
+  message: '创建一个文件',
   write: true,
 });
 
 if (result.success) {
-  console.log('Success:', result.data.text);
-  console.log('Tokens used:', result.data.usage);
+  console.log('成功:', result.data.text);
+  console.log('使用的 Token:', result.data.usage);
 } else {
-  console.error('Error:', result.error.message);
+  console.error('错误:', result.error.message);
 }
 ```
 
 ---
 
-## Support
+## 支持
 
-For more information or to report issues, visit [GitHub Issues](https://github.com/lyw405/oricore/issues).
+更多信息或报告问题，请访问 [GitHub Issues](https://github.com/lyw405/oricore/issues)。
