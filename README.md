@@ -2,23 +2,38 @@
 
 # OriCore
 
-**A powerful, standalone AI coding engine with multi-model support, tool calling, and extensible architecture**
+**A powerful, standalone AI engine with multi-model support, tool calling, and extensible architecture**
 
 [![npm version](https://badge.fury.io/js/oricore.svg)](https://www.npmjs.com/package/oricore)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
-## Features
+## About OriCore
 
-- 🤖 **Multi-Model Support**: OpenAI, Anthropic, Google, DeepSeek, and 40+ providers
-- 🛠️ **Rich Tool System**: read, write, edit, grep, glob, fetch, and more
-- 🧠 **Interaction Modes**: brainstorm, plan, review, debug, and default modes
-- 🔌 **MCP Integration**: Extensible via Model Context Protocol
-- 🎯 **Agent System**: Built-in agents for complex tasks
-- 💬 **Interactive**: Q&A tool for user interaction
-- 📦 **Zero Configuration**: Works out of the box with sensible defaults
-- 🔧 **Fully Typed**: Complete TypeScript support
+OriCore is a comprehensive AI engine that provides the core functionality for building intelligent assistants. It offers a rich set of tools, multi-model support, and extensible architecture through MCP (Model Context Protocol) and Skills.
+
+### Key Features
+
+- **Multi-Model Support**: Compatible with 40+ AI providers including OpenAI, Anthropic, Google, DeepSeek, and more
+- **Rich Tool System**: Built-in tools for file operations (read, write, edit), code search (grep, glob), shell commands, and web requests
+- **Interaction Modes**: Specialized modes for different tasks - brainstorming, planning, code review, debugging, and default
+- **MCP Integration**: Extensible via Model Context Protocol for custom tools and capabilities
+- **Skill System**: Load and use custom skills from local or remote sources (GitHub, GitLab)
+- **Agent Framework**: Built-in agents for complex multi-step tasks (explore, general-purpose)
+- **Session Management**: Persistent conversation history with session resumption
+- **Streaming Support**: Real-time text delta streaming for responsive interactions
+- **Fully Typed**: Complete TypeScript support with comprehensive type definitions
+- **Zero Configuration**: Works out of the box with sensible defaults
+
+### Use Cases
+
+- Build custom AI assistants
+- Integrate AI capabilities into IDE extensions
+- Create automated code review systems
+- Develop intelligent debugging tools
+- Build educational platforms
+- Implement automated documentation generation
 
 ## Installation
 
@@ -39,152 +54,127 @@ bun add oricore
 ```typescript
 import { createEngine } from 'oricore';
 
+// 1. Create the engine
 const engine = createEngine({
-  productName: 'MyApp',
+  productName: 'MyAIAssistant',
   version: '1.0.0',
 });
 
+// 2. Initialize with model and API key
 await engine.initialize({
-  model: 'openai/gpt-4o',
+  model: 'zhipuai/glm-4.7',
+  provider: {
+    zhipuai: {
+      apiKey: 'your-api-key',
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+    },
+  },
 });
 
+// 3. Send a message
 const result = await engine.sendMessage({
   message: 'Create a TypeScript function to calculate fibonacci',
   write: true,
 });
 
 console.log(result.data.text);
+
+// 4. Cleanup
+await engine.shutdown();
 ```
 
-## Usage
+## Interaction Modes
 
-### Basic Chat
-
-```typescript
-const answer = await engine.ask('What is TypeScript?');
-```
-
-### Multi-Turn Conversation
+OriCore provides specialized modes for different tasks:
 
 ```typescript
-const result = await engine.sendMessage({
-  message: 'Create a user class',
-  write: true,
-  maxTurns: 50,
-});
-```
-
-### Brainstorming Mode
-
-```typescript
+// Brainstorm mode - interactive design exploration
 engine.setMode('brainstorm');
+const design = await engine.sendMessageWithMode('I want to build a task management app');
 
-const result = await engine.sendMessageWithMode(
-  'I want to build a task management app',
-  {
-    onToolApprove: async (toolUse) => {
-      if (toolUse.name === 'askUserQuestion') {
-        const questions = toolUse.params.questions;
-        // Collect user answers
-        const answers = await collectAnswers(questions);
-        return {
-          approved: true,
-          params: { ...toolUse.params, answers },
-        };
-      }
-      return { approved: true };
-    },
-  }
-);
+// Plan mode - create implementation plans
+engine.setMode('plan');
+const plan = await engine.sendMessageWithMode('Create a plan for adding user authentication');
+
+// Review mode - code review and analysis
+engine.setMode('review');
+const review = await engine.sendMessageWithMode('Review this code: ...');
+
+// Debug mode - troubleshooting
+engine.setMode('debug');
+const fix = await engine.sendMessageWithMode('Help debug this error: ...');
 ```
 
-### Custom Mode
+## Built-in Tools
 
-```typescript
-engine.registerMode({
-  id: 'code-reviewer',
-  name: 'Code Reviewer',
-  config: {
-    systemPrompt: 'You are a code reviewer...',
-    write: false,
-    askUserQuestion: false,
-  },
-});
+OriCore includes a comprehensive set of tools:
 
-engine.setMode('code-reviewer');
-```
+| Tool | Description |
+|------|-------------|
+| `read` | Read file contents |
+| `write` | Write new files |
+| `edit` | Edit existing files with search/replace |
+| `glob` | Find files by pattern |
+| `grep` | Search file contents |
+| `bash` | Execute shell commands |
+| `fetch` | Make HTTP requests |
+| `askUserQuestion` | Interactive Q&A with users |
+| `task` | Spawn specialized agents |
+| `todo` | Track task progress |
 
 ## Configuration
 
-### Environment Variables
-
-```bash
-# OpenAI
-export OPENAI_API_KEY=sk-...
-export OPENAI_API_BASE=https://api.openai.com/v1
-
-# Anthropic
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Google
-export GOOGLE_API_KEY=...
-
-# DeepSeek
-export DEEPSEEK_API_KEY=...
-```
-
-### Initialize with Config
+### Full Configuration Example
 
 ```typescript
 await engine.initialize({
-  model: 'openai/gpt-4o',
+  model: 'zhipuai/glm-4.7',
+  planModel: 'zhipuai/glm-4.7',
+  approvalMode: 'autoEdit',
+  language: 'zh-CN',
+  tools: {
+    read: true,
+    write: true,
+    bash: true,
+  },
   provider: {
-    openai: {
-      apiKey: 'sk-...',
-      baseURL: 'https://api.openai.com/v1'
-    }
-  }
+    zhipuai: {
+      apiKey: 'your-api-key',
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+    },
+  },
 });
 ```
 
-## API
+### Supported Providers
 
-### Engine Class
+| Provider | Model Example | API Base URL |
+|----------|---------------|--------------|
+| Zhipu AI | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
+| DeepSeek | `deepseek/deepseek-chat` | `https://api.deepseek.com` |
+| OpenAI | `openai/gpt-4o` | `https://api.openai.com/v1` |
+| Anthropic | `anthropic/claude-sonnet-4` | `https://api.anthropic.com` |
+| Google | `google/gemini-2.5-flash` | `https://generativelanguage.googleapis.com` |
 
-```typescript
-class Engine {
-  constructor(options: EngineOptions)
-  async initialize(config: EngineConfig): Promise<void>
-  async sendMessage(options: SendMessageOptions): Promise<LoopResult>
-  async ask(message: string): Promise<string>
-  async createSession(options?: SessionOptions): Promise<Session>
-  setMode(mode: ModeType): void
-  sendMessageWithMode(message: string, options?: Partial<SendMessageOptions>): Promise<LoopResult>
-  getContext(): Context
-  getMessageBus(): MessageBus
-  async shutdown(): Promise<void>
-}
+See [USAGE.md](./USAGE.md) for more configuration options.
+
+## Project Structure
+
 ```
-
-### Modes
-
-- `default` - General purpose coding assistant
-- `brainstorm` - Interactive design and ideation
-- `plan` - Create implementation plans
-- `review` - Code review and analysis
-- `debug` - Troubleshooting and debugging
-
-## Examples
-
-See the `examples/` directory for more examples:
-
-- `basic.ts` - Basic usage
-- `modes.ts` - Using different modes
-- `streaming.ts` - Streaming responses
-
-## Documentation
-
-For more detailed documentation, please visit the [USAGE.md](./USAGE.md) file.
+oricore/
+├── src/
+│   ├── api/           # Main Engine API
+│   ├── core/          # Core functionality (loop, context, config)
+│   ├── tools/         # Built-in tools
+│   ├── modes/         # Interaction modes
+│   ├── mcp/           # MCP integration
+│   ├── skill/         # Skill system
+│   ├── agent/         # Agent framework
+│   ├── session/       # Session management
+│   └── utils/         # Utilities
+├── examples/          # Usage examples
+└── dist/              # Compiled output
+```
 
 ## License
 

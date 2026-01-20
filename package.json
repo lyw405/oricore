@@ -1,6 +1,6 @@
 {
   "name": "oricore",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "OriCore - A powerful AI engine with multi-modal support, tool calling, and extensible architecture",
   "type": "module",
   "main": "./dist/index.js",
@@ -66,7 +66,6 @@
     "defu": "^6.1.4",
     "degit": "^2.8.4",
     "diff": "^8.0.2",
-    "dotenv": "^17.2.3",
     "fastmcp": "^3.25.4",
     "front-matter": "^4.0.2",
     "glob": "^13.0.0",
@@ -85,7 +84,6 @@
     "@eslint/js": "^9.39.2",
     "@types/debug": "^4.1.12",
     "@types/diff": "^6.0.0",
-    "@types/dotenv": "^8.2.3",
     "@types/node": "^25.0.2",
     "@types/resolve": "^1.20.6",
     "@types/turndown": "^5.0.6",
