@@ -3,6 +3,7 @@ import fs from 'fs';
 import { homedir } from 'os';
 import path from 'pathe';
 import type { Provider } from '../core/model';
+import { loadEnvFile } from '../utils/dotenv';
 
 export type McpStdioServerConfig = {
   type: 'stdio';
@@ -169,6 +170,9 @@ export class ConfigManager {
   projectConfigPath: string;
 
   constructor(cwd: string, productName: string, argvConfig: Partial<Config>) {
+    // Load .env files before loading other configs
+    loadEnvFile(cwd);
+
     const lowerProductName = productName.toLowerCase();
     const globalConfigPath = path.join(
       homedir(),
