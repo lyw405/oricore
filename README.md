@@ -190,6 +190,13 @@ oricore/
 └── dist/              # Compiled output
 ```
 
+## Acknowledgments
+
+This project is based on the core architecture of excellent projects:
+- **[neovate-code](https://github.com/neovacode/neovate-code)** - Core AI engine architecture
+
+OriCore has been refactored and streamlined, removing UI, CLI, and other peripheral features to focus on providing a lightweight, standalone AI engine library that can be easily integrated into any project.
+
 ## License
 
 MIT © [lyw405](https://github.com/lyw405)

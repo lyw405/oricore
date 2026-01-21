@@ -190,6 +190,13 @@ oricore/
 └── dist/              # 编译输出
 ```
 
+## 致谢
+
+本项目参考了以下优秀项目的核心架构：
+- **[neovate-code](https://github.com/neovacode/neovate-code)** - 核心 AI 引擎架构
+
+OriCore 在此基础上进行了重新封装和精简，移除了 UI、CLI 等周边功能，专注于提供一个轻量、独立的 AI 引擎库，可轻松集成到任何项目中。
+
 ## 许可证
 
 MIT © [lyw405](https://github.com/lyw405)
