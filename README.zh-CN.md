@@ -74,11 +74,11 @@ const engine = createEngine({
 
 // 2. 初始化模型和 API Key
 await engine.initialize({
-  model: 'zhipuai/glm-4.7',
+  model: 'openai/gpt-5.2-codex',
   provider: {
-    zhipuai: {
+    openai: {
       apiKey: 'your-api-key',
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      baseURL: 'https://api.openai.com/v1',
     },
   },
 });
@@ -142,8 +142,8 @@ OriCore 包含一套完整的工具：
 
 ```typescript
 await engine.initialize({
-  model: 'zhipuai/glm-4.7',
-  planModel: 'zhipuai/glm-4.7',
+  model: 'openai/gpt-5.2-codex',
+  planModel: 'openai/gpt-5.2-codex',
   approvalMode: 'autoEdit',
   language: 'zh-CN',
   tools: {
@@ -152,9 +152,9 @@ await engine.initialize({
     bash: true,
   },
   provider: {
-    zhipuai: {
+    openai: {
       apiKey: 'your-api-key',
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      baseURL: 'https://api.openai.com/v1',
     },
   },
 });
@@ -164,11 +164,11 @@ await engine.initialize({
 
 | 提供商 | 模型示例 | API 地址 |
 |----------|---------------|--------------|
-| 智谱 AI | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
+| OpenAI | `openai/gpt-5.2-codex` | `https://api.openai.com/v1` |
+| Anthropic | `anthropic/claude-opus-4-5` | `https://api.anthropic.com` |
+| Google | `google/gemini-3-flash-preview` | `https://generativelanguage.googleapis.com` |
 | DeepSeek | `deepseek/deepseek-chat` | `https://api.deepseek.com` |
-| OpenAI | `openai/gpt-4o` | `https://api.openai.com/v1` |
-| Anthropic | `anthropic/claude-sonnet-4` | `https://api.anthropic.com` |
-| Google | `google/gemini-2.5-flash` | `https://generativelanguage.googleapis.com` |
+| 智谱 AI | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
 
 更多配置选项请参阅 [USAGE.zh-CN.md](./USAGE.zh-CN.md)。
 
@@ -193,7 +193,7 @@ oricore/
 ## 致谢
 
 本项目参考了以下优秀项目的核心架构：
-- **[neovate-code](https://github.com/neovacode/neovate-code)** - 核心 AI 引擎架构
+- **[neovate-code](https://github.com/neovateai/neovate-code)** - 核心 AI 引擎架构
 
 OriCore 在此基础上进行了重新封装和精简，移除了 UI、CLI 等周边功能，专注于提供一个轻量、独立的 AI 引擎库，可轻松集成到任何项目中。
 

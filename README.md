@@ -74,11 +74,11 @@ const engine = createEngine({
 
 // 2. Initialize with model and API key
 await engine.initialize({
-  model: 'zhipuai/glm-4.7',
+  model: 'openai/gpt-5.2-codex',
   provider: {
-    zhipuai: {
+    openai: {
       apiKey: 'your-api-key',
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      baseURL: 'https://api.openai.com/v1',
     },
   },
 });
@@ -142,19 +142,19 @@ OriCore includes a comprehensive set of tools:
 
 ```typescript
 await engine.initialize({
-  model: 'zhipuai/glm-4.7',
-  planModel: 'zhipuai/glm-4.7',
+  model: 'openai/gpt-5.2-codex',
+  planModel: 'openai/gpt-5.2-codex',
   approvalMode: 'autoEdit',
-  language: 'zh-CN',
+  language: 'en',
   tools: {
     read: true,
     write: true,
     bash: true,
   },
   provider: {
-    zhipuai: {
+    openai: {
       apiKey: 'your-api-key',
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      baseURL: 'https://api.openai.com/v1',
     },
   },
 });
@@ -164,11 +164,11 @@ await engine.initialize({
 
 | Provider | Model Example | API Base URL |
 |----------|---------------|--------------|
-| Zhipu AI | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
+| OpenAI | `openai/gpt-5.2-codex` | `https://api.openai.com/v1` |
+| Anthropic | `anthropic/claude-opus-4-5` | `https://api.anthropic.com` |
+| Google | `google/gemini-3-flash-preview` | `https://generativelanguage.googleapis.com` |
 | DeepSeek | `deepseek/deepseek-chat` | `https://api.deepseek.com` |
-| OpenAI | `openai/gpt-4o` | `https://api.openai.com/v1` |
-| Anthropic | `anthropic/claude-sonnet-4` | `https://api.anthropic.com` |
-| Google | `google/gemini-2.5-flash` | `https://generativelanguage.googleapis.com` |
+| Zhipu AI | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
 
 See [USAGE.md](./USAGE.md) for more configuration options.
 
@@ -193,7 +193,7 @@ oricore/
 ## Acknowledgments
 
 This project is based on the core architecture of excellent projects:
-- **[neovate-code](https://github.com/neovacode/neovate-code)** - Core AI engine architecture
+- **[neovate-code](https://github.com/neovateai/neovate-code)** - Core AI engine architecture
 
 OriCore has been refactored and streamlined, removing UI, CLI, and other peripheral features to focus on providing a lightweight, standalone AI engine library that can be easily integrated into any project.
 
