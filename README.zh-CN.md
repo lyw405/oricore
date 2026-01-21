@@ -51,6 +51,16 @@ pnpm add oricore
 bun add oricore
 ```
 
+### 可选依赖
+
+OriCore 支持通过可选依赖来扩展功能：
+
+**PDF 支持**
+```bash
+npm install pdf-parse
+```
+安装 `pdf-parse` 后，`read` 工具可以解析 PDF 文件。未安装时，PDF 读取功能将被禁用。
+
 ## 快速开始
 
 ```typescript
@@ -113,7 +123,7 @@ OriCore 包含一套完整的工具：
 
 | 工具 | 描述 |
 |------|------|
-| `read` | 读取文件内容 |
+| `read` | 读取文件内容（支持文本、图片和 PDF*） |
 | `write` | 写入新文件 |
 | `edit` | 编辑现有文件（搜索/替换） |
 | `glob` | 按模式查找文件 |
@@ -123,6 +133,8 @@ OriCore 包含一套完整的工具：
 | `askUserQuestion` | 与用户交互式问答 |
 | `task` | 启动专用 Agent |
 | `todo` | 跟踪任务进度 |
+
+*PDF 支持需要安装可选的 `pdf-parse` 包（见上文）
 
 ## 配置
 

@@ -51,6 +51,16 @@ pnpm add oricore
 bun add oricore
 ```
 
+### Optional Dependencies
+
+OriCore has support for additional features through optional dependencies:
+
+**PDF Support**
+```bash
+npm install pdf-parse
+```
+The `read` tool can parse PDF files when `pdf-parse` is installed. Without it, PDF reading will be disabled.
+
 ## Quick Start
 
 ```typescript
@@ -113,7 +123,7 @@ OriCore includes a comprehensive set of tools:
 
 | Tool | Description |
 |------|-------------|
-| `read` | Read file contents |
+| `read` | Read file contents (supports text, images, and PDF*) |
 | `write` | Write new files |
 | `edit` | Edit existing files with search/replace |
 | `glob` | Find files by pattern |
@@ -123,6 +133,8 @@ OriCore includes a comprehensive set of tools:
 | `askUserQuestion` | Interactive Q&A with users |
 | `task` | Spawn specialized agents |
 | `todo` | Track task progress |
+
+*PDF support requires the optional `pdf-parse` package (see below)
 
 ## Configuration
 

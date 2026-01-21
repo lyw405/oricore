@@ -3,6 +3,12 @@ import fs from 'fs';
 import { homedir } from 'os';
 import path from 'pathe';
 import type { Provider } from '../core/model';
+import {
+  assertValidConfig,
+  formatValidationErrors,
+  type ValidationResult,
+  validateConfig,
+} from './configValidation';
 
 export type McpStdioServerConfig = {
   type: 'stdio';
@@ -167,6 +173,7 @@ export class ConfigManager {
   argvConfig: Partial<Config>;
   globalConfigPath: string;
   projectConfigPath: string;
+  private validationEnabled: boolean = false;
 
   constructor(cwd: string, productName: string, argvConfig: Partial<Config>) {
     const lowerProductName = productName.toLowerCase();
@@ -203,7 +210,55 @@ export class ConfigManager {
     config.planModel = config.planModel || config.model;
     config.smallModel = config.smallModel || config.model;
     config.visionModel = config.visionModel || config.model;
+
+    // Validate config if enabled
+    if (this.validationEnabled) {
+      assertValidConfig(config);
+    }
+
     return config;
+  }
+
+  /**
+   * Enable configuration validation
+   * When enabled, invalid configurations will throw errors
+   */
+  enableValidation(): void {
+    this.validationEnabled = true;
+  }
+
+  /**
+   * Disable configuration validation
+   */
+  disableValidation(): void {
+    this.validationEnabled = false;
+  }
+
+  /**
+   * Validate the current configuration
+   * Returns validation result without throwing
+   */
+  validate(): ValidationResult {
+    const config = defu(
+      this.argvConfig,
+      defu(this.projectConfig, defu(this.globalConfig, DEFAULT_CONFIG)),
+    ) as Config;
+    config.planModel = config.planModel || config.model;
+    config.smallModel = config.smallModel || config.model;
+    config.visionModel = config.visionModel || config.model;
+
+    return validateConfig(config);
+  }
+
+  /**
+   * Get validation errors as a formatted string
+   */
+  getValidationErrors(): string {
+    const result = this.validate();
+    if (result.valid) {
+      return 'Configuration is valid';
+    }
+    return formatValidationErrors(result);
   }
 
   removeConfig(global: boolean, key: string, values?: string[]) {

@@ -5,6 +5,8 @@ import { History } from '../core/history';
 import type { NormalizedMessage } from '../core/message';
 import { Usage } from '../core/usage';
 import { randomUUID } from '../utils/randomUUID';
+import { lockRegistry } from '../utils/fileLock';
+import type { ModeType } from '../modes/types';
 
 export type SessionId = string;
 
@@ -65,8 +67,10 @@ const DEFAULT_SESSION_CONFIG: SessionConfig = {
 export class SessionConfigManager {
   logPath: string;
   config: SessionConfig;
+  mode: ModeType | null;
   constructor(opts: { logPath: string }) {
     this.logPath = opts.logPath;
+    this.mode = null;
     this.config = this.load(opts.logPath);
   }
 
@@ -81,6 +85,10 @@ export class SessionConfigManager {
         try {
           const parsed = JSON.parse(line);
           if (parsed.type === 'config') {
+            // Load mode if present
+            if (parsed.mode) {
+              this.mode = parsed.mode;
+            }
             return parsed.config;
           }
         } catch {}
@@ -90,33 +98,49 @@ export class SessionConfigManager {
       return DEFAULT_SESSION_CONFIG;
     }
   }
-  write() {
-    // TODO: add write lock
-    const configLine = JSON.stringify({ type: 'config', config: this.config });
-    if (!fs.existsSync(this.logPath)) {
-      fs.mkdirSync(path.dirname(this.logPath), { recursive: true });
-      fs.writeFileSync(this.logPath, configLine + '\n', 'utf-8');
-      return;
-    }
-    try {
-      const content = fs.readFileSync(this.logPath, 'utf-8');
-      const lines = content.split('\n');
-      const filteredLines = lines.filter((line) => {
-        if (!line) return false;
-        try {
-          const parsed = JSON.parse(line);
-          return parsed.type !== 'config';
-        } catch {
-          return true;
-        }
+
+  setMode(mode: ModeType): void {
+    this.mode = mode;
+  }
+
+  getMode(): ModeType | null {
+    return this.mode;
+  }
+
+  async write() {
+    const lock = lockRegistry.getLock(this.logPath);
+
+    await lock.withLock(async () => {
+      const configLine = JSON.stringify({
+        type: 'config',
+        config: this.config,
+        mode: this.mode,
       });
-      const newContent = [configLine, ...filteredLines].join('\n');
-      fs.writeFileSync(this.logPath, newContent + '\n', 'utf-8');
-    } catch (e: any) {
-      throw new Error(
-        `Failed to write config to log file: ${this.logPath}: ${e.message}`,
-      );
-    }
+      if (!fs.existsSync(this.logPath)) {
+        fs.mkdirSync(path.dirname(this.logPath), { recursive: true });
+        fs.writeFileSync(this.logPath, configLine + '\n', 'utf-8');
+        return;
+      }
+      try {
+        const content = fs.readFileSync(this.logPath, 'utf-8');
+        const lines = content.split('\n');
+        const filteredLines = lines.filter((line) => {
+          if (!line) return false;
+          try {
+            const parsed = JSON.parse(line);
+            return parsed.type !== 'config';
+          } catch {
+            return true;
+          }
+        });
+        const newContent = [configLine, ...filteredLines].join('\n');
+        fs.writeFileSync(this.logPath, newContent + '\n', 'utf-8');
+      } catch (e: any) {
+        throw new Error(
+          `Failed to write config to log file: ${this.logPath}: ${e.message}`,
+        );
+      }
+    });
   }
 }
 

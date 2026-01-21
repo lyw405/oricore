@@ -137,6 +137,46 @@ await engine.initialize({
 
 ## Configuration Options
 
+### Optional Dependencies
+
+OriCore supports optional dependencies for extended functionality:
+
+#### PDF Support
+
+The `read` tool can parse PDF files when the `pdf-parse` package is installed:
+
+```bash
+npm install pdf-parse
+# or
+pnpm add pdf-parse
+# or
+bun add pdf-parse
+```
+
+**PDF Reading Limits:**
+- Maximum file size: 5MB
+- Maximum pages: 100
+- Maximum characters per page: 5,000
+- Maximum tokens: 15,000
+
+**Usage:**
+```typescript
+// PDF reading is automatic when pdf-parse is installed
+const result = await engine.sendMessage({
+  message: 'Read and summarize document.pdf',
+  write: false,
+});
+
+// If pdf-parse is not installed, you'll get a helpful error:
+// "PDF parsing requires the 'pdf-parse' package. Install it with: npm install pdf-parse"
+```
+
+**Supported PDF Features:**
+- Text extraction
+- Metadata extraction (title, author, creation date, etc.)
+- Multi-page documents
+- Automatic truncation for large files
+
 ### Full Configuration
 
 ```typescript

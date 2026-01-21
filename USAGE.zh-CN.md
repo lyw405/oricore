@@ -137,6 +137,46 @@ await engine.initialize({
 
 ## 配置选项
 
+### 可选依赖
+
+OriCore 支持通过可选依赖来扩展功能：
+
+#### PDF 支持
+
+安装 `pdf-parse` 包后，`read` 工具可以解析 PDF 文件：
+
+```bash
+npm install pdf-parse
+# 或
+pnpm add pdf-parse
+# 或
+bun add pdf-parse
+```
+
+**PDF 读取限制：**
+- 最大文件大小：5MB
+- 最大页数：100
+- 每页最大字符数：5,000
+- 最大 token 数：15,000
+
+**使用方法：**
+```typescript
+// 安装 pdf-parse 后，PDF 读取是自动的
+const result = await engine.sendMessage({
+  message: '阅读并总结 document.pdf',
+  write: false,
+});
+
+// 如果未安装 pdf-parse，你会收到一个友好的错误提示：
+// "PDF parsing requires the 'pdf-parse' package. Install it with: npm install pdf-parse"
+```
+
+**支持的 PDF 功能：**
+- 文本提取
+- 元数据提取（标题、作者、创建日期等）
+- 多页文档
+- 大文件自动截断
+
 ### 完整配置
 
 ```typescript

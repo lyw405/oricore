@@ -295,12 +295,52 @@ export class History {
       });
     } catch (error) {
       debug('Compact failed:', error);
-      throw new Error(
-        `History compaction failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+
+      // Graceful degradation: instead of throwing, use a simple summary
+      const fallbackSummary = this.#generateFallbackSummary();
+      debug('Using fallback summary due to compaction failure');
+
+      const summaryMessage: NormalizedMessage = {
+        parentUuid: null,
+        uuid: randomUUID(),
+        role: 'user',
+        content: [{ type: 'text', text: fallbackSummary }],
+        uiContent: COMPACT_MESSAGE,
+        type: 'message',
+        timestamp: new Date().toISOString(),
+      };
+      this.messages = [summaryMessage];
+      await this.onMessage?.(summaryMessage);
+
+      return {
+        compressed: true,
+        summary: fallbackSummary,
+        fallback: true,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
     if (!summary || summary.trim().length === 0) {
-      throw new Error('Generated summary is empty');
+      // If summary is empty, use fallback
+      const fallbackSummary = this.#generateFallbackSummary();
+      debug('Generated summary is empty, using fallback');
+
+      const summaryMessage: NormalizedMessage = {
+        parentUuid: null,
+        uuid: randomUUID(),
+        role: 'user',
+        content: [{ type: 'text', text: fallbackSummary }],
+        uiContent: COMPACT_MESSAGE,
+        type: 'message',
+        timestamp: new Date().toISOString(),
+      };
+      this.messages = [summaryMessage];
+      await this.onMessage?.(summaryMessage);
+
+      return {
+        compressed: true,
+        summary: fallbackSummary,
+        fallback: true,
+      };
     }
 
     const summaryMessage: NormalizedMessage = {
@@ -318,6 +358,65 @@ export class History {
     return {
       compressed: true,
       summary,
+      fallback: false,
     };
+  }
+
+  /**
+   * Generate a simple fallback summary when AI compression fails
+   * This ensures the conversation can continue even if compression fails
+   */
+  #generateFallbackSummary(): string {
+    const messageCount = this.messages.length;
+    const lastUserMessage = [...this.messages]
+      .reverse()
+      .find((m) => m.role === 'user');
+
+    const recentTools = new Set<string>();
+    for (let i = this.messages.length - 1; i >= 0 && recentTools.size < 5; i--) {
+      const msg = this.messages[i];
+      if (msg.role === 'tool') {
+        for (const part of msg.content as any[]) {
+          if (part.type === 'tool-result') {
+            recentTools.add(part.toolName);
+          }
+        }
+      }
+    }
+
+    const sections: string[] = [];
+
+    sections.push(`<conversation_overview>`);
+    sections.push(
+      `Previous conversation contained ${messageCount} messages. `,
+    );
+    if (lastUserMessage) {
+      const content =
+        typeof lastUserMessage.content === 'string'
+          ? lastUserMessage.content
+          : JSON.stringify(lastUserMessage.content);
+      const preview =
+        content.length > 100
+          ? content.substring(0, 100) + '...'
+          : content;
+      sections.push(`Last user message was about: "${preview}"`);
+    }
+    sections.push(`</conversation_overview>`);
+
+    if (recentTools.size > 0) {
+      sections.push(`\n<recent_actions>`);
+      sections.push(`Recent tools used: ${Array.from(recentTools).join(', ')}`);
+      sections.push(`</recent_actions>`);
+    }
+
+    sections.push(`\n<note>`);
+    sections.push(
+      `This is an auto-generated summary due to compression unavailability. `,
+    );
+    sections.push(`The conversation history has been compressed to continue the session. `,
+    );
+    sections.push(`</note>`);
+
+    return sections.join('\n');
   }
 }

@@ -9,6 +9,11 @@ import {
   MaxFileReadTokenExceededError,
 } from '../../utils/error';
 import { safeStringify } from '../../utils/safeStringify';
+import {
+  formatPDFResult,
+  isPDFParsingAvailable,
+  parsePDF,
+} from '../../utils/pdf-parser';
 
 type ImageMediaType =
   | 'image/jpeg'
@@ -136,11 +141,6 @@ Usage:
 
         const ext = path.extname(file_path).toLowerCase();
 
-        // Handle PDF files
-        if ('.pdf' === ext) {
-          throw new Error('PDF files are not supported yet');
-        }
-
         const fullFilePath = (() => {
           if (path.isAbsolute(file_path)) {
             return file_path;
@@ -157,6 +157,69 @@ Usage:
           }
           throw new Error(`File ${file_path} does not exist.`);
         })();
+
+        // Handle PDF files
+        if ('.pdf' === ext) {
+          const pdfAvailable = await isPDFParsingAvailable();
+          if (!pdfAvailable) {
+            throw new Error(
+              'PDF parsing requires the "pdf-parse" package. Install it with: npm install pdf-parse',
+            );
+          }
+
+          const stats = fs.statSync(fullFilePath);
+
+          // Security: Validate file path to prevent traversal attacks
+          const resolvedPath = path.resolve(fullFilePath);
+          const normalizedCwd = path.resolve(opts.cwd);
+          if (!resolvedPath.startsWith(normalizedCwd)) {
+            throw new Error('Invalid file path: path traversal detected');
+          }
+
+          // Check file size (warn if > 5MB)
+          const fileSizeMB = stats.size / (1024 * 1024);
+          if (fileSizeMB > 5) {
+            return {
+              isError: true,
+              llmContent: `PDF file is too large (${Math.round(fileSizeMB * 100) / 100}MB). Maximum supported size is 5MB for PDF files.`,
+            };
+          }
+
+          try {
+            const result = await parsePDF(fullFilePath, {
+              maxPages: 100, // Limit to 100 pages
+              maxCharsPerPage: 5000, // Limit per page
+              includeMetadata: true,
+            });
+
+            // Check token count
+            const tokenCount = countTokens(result.text);
+            const MAX_PDF_TOKENS = 15000;
+            if (tokenCount > MAX_PDF_TOKENS) {
+              return {
+                isError: true,
+                llmContent: `PDF content is too large (${tokenCount} tokens). Maximum supported is ${MAX_PDF_TOKENS} tokens. Try extracting specific pages.`,
+              };
+            }
+
+            return {
+              returnDisplay: `Read PDF file (${result.pageCount} pages)`,
+              llmContent: safeStringify({
+                type: 'pdf',
+                filePath: file_path,
+                pageCount: result.pageCount,
+                metadata: result.metadata,
+                content: result.text,
+                tokenCount,
+              }),
+            };
+          } catch (error) {
+            return {
+              isError: true,
+              llmContent: `Failed to parse PDF file: ${error instanceof Error ? error.message : String(error)}`,
+            };
+          }
+        }
 
         // Handle image files
         if (IMAGE_EXTENSIONS.has(ext)) {
