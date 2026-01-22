@@ -190,7 +190,7 @@ oricore/
 └── dist/              # 编译输出
 ```
 
-## 致谢
+## 声明
 
 本项目参考了以下优秀项目的核心架构：
 - **[neovate-code](https://github.com/neovateai/neovate-code)** - 核心 AI 引擎架构
