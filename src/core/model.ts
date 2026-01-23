@@ -1812,8 +1812,18 @@ export const providers: ProvidersMap = {
     doc: 'https://cerebras.ai/docs',
     models: {
       'zai-glm-4.6': models['glm-4.6'],
-      'zai-glm-4.7': models['glm-4.7'],
-      'gpt-oss-120b': models['gpt-oss-120b'],
+      'zai-glm-4.7': {
+        ...models['glm-4.7'],
+        // ref: https://inference-docs.cerebras.ai/models/zai-glm-47
+        // default use the context of free tier
+        limit: { context: 64000, output: 40000 },
+      },
+      'gpt-oss-120b': {
+        ...models['gpt-oss-120b'],
+        // ref: https://inference-docs.cerebras.ai/models/openai-oss
+        // default use the context of free tier
+        limit: { context: 65000, output: 32000 },
+      },
     },
     createModel(name, provider) {
       const apiKey = getProviderApiKey(provider);

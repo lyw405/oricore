@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0.html).
 
+## [1.3.2] - 2025-01-23
+
+### Fixed
+
+- **safeParseJson**: Add jsonrepair fallback for malformed JSON
+  - When JSON.parse fails, attempts to repair using jsonrepair library
+  - Prevents data loss from malformed JSON responses
+
+- **MCP**: Fix Windows npx/npm/pnpm/bun/bunx ENOENT error
+  - Shell commands now wrapped with cmd.exe on win32 platform
+  - Resolves command spawning failures on Windows
+
+- **Loop**: Record results for remaining tools on denial
+  - Added helper to ensure all tool calls get results even when earlier tools are denied
+  - Prevents tool result loss and improves LLM context
+
+- **Model**: Update cerebras free tier context limits
+  - zai-glm-4.7: context 64000, output 40000
+  - gpt-oss-120b: context 65000, output 32000
+
 ## [1.3.0] - 2025-01-21
 
 ### ⚠️ BREAKING CHANGES
