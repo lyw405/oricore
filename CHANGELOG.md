@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0.html).
 
+## [1.3.3] - 2025-01-26
+
+### Added
+
+- **Documentation**: Tool Approval System documentation
+  - New comprehensive documentation: `APPROVAL.md` (English) and `APPROVAL.zh-CN.md` (Chinese)
+  - Documents three approval modes: `default`, `autoEdit`, `yolo`
+  - 6-step approval flow explanation with priority order
+  - Custom approval handler examples (CLI, web, conditional logic)
+  - Tool categories (`read`, `write`, `command`, `network`, `ask`)
+  - Best practices for production use
+  - Added approval system section to USAGE.md and USAGE.zh-CN.md
+  - Added approval documentation links to README.md and README.zh-CN.md
+
+### Changed
+
+- **Skill**: Increase description max length from 1024 to 2048 characters
+  - Allows for more detailed skill descriptions
+
+- **Skill**: Remove single-line restriction for skill descriptions
+  - Multi-line descriptions are now supported for better documentation
+
+- **Tools**: Add plugin hook support for tool injection
+  - Plugins can now inject custom tools via the `tool` hook
+  - Hook uses `SeriesMerge` type to combine plugin tools with built-in tools
+  - Added `isPlan` parameter to `resolveTools` for better context awareness
+  - Tool filtering now applies to both built-in and plugin-injected tools
+
 ## [1.3.2] - 2025-01-23
 
 ### Fixed
