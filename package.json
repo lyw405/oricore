@@ -71,15 +71,16 @@
     "glob": "^13.0.0",
     "gpt-tokenizer": "^3.4.0",
     "jiti": "^2.6.1",
+    "jsonrepair": "^3.10.0",
     "oauth-providers": "^1.0.2",
     "pathe": "^2.0.3",
+    "pdf-parse": "^2.4.5",
     "resolve": "^1.22.11",
     "spawn-rx": "^5.1.2",
     "tar": "^7.5.2",
     "turndown": "^7.2.2",
     "ws": "^8.18.3",
-    "zod": "^4.1.13",
-    "jsonrepair": "^3.10.0"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
