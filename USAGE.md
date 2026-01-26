@@ -7,6 +7,7 @@
 - [Quick Start](#quick-start)
 - [Model Providers](#model-providers)
 - [Configuration Options](#configuration-options)
+- [Tool Approval System](#tool-approval-system)
 - [MCP Integration](#mcp-integration)
 - [Skill System](#skill-system)
 - [Custom Modes](#custom-modes)
@@ -218,6 +219,72 @@ await engine.initialize({
 - `default` - Ask for approval before each tool execution
 - `autoEdit` - Auto-approve read/edit tools, ask for others
 - `yolo` - Auto-approve all tools
+
+**For detailed information about the approval system, see [APPROVAL.md](APPROVAL.md)**
+
+---
+
+## Tool Approval System
+
+OriCore provides a flexible tool approval system with three built-in modes and custom approval handlers.
+
+### Quick Overview
+
+```typescript
+await engine.initialize({
+  approvalMode: 'autoEdit',  // 'default' | 'autoEdit' | 'yolo'
+});
+```
+
+### Approval Modes
+
+| Mode | Read | Write/Edit | Bash | Fetch | User Questions |
+|------|------|-----------|------|-------|----------------|
+| `default` | ✅ Auto | ❌ Ask | ❌ Ask | ❌ Ask | ❌ Always ask |
+| `autoEdit` | ✅ Auto | ✅ Auto | ❌ Ask | ❌ Ask | ❌ Always ask |
+| `yolo` | ✅ Auto | ✅ Auto | ✅ Auto* | ✅ Auto | ❌ Always ask |
+
+*High-risk commands still require approval
+
+### Custom Approval Handler
+
+For complete control, provide an `onToolApprove` callback:
+
+```typescript
+await engine.sendMessage({
+  message: 'Refactor code',
+  write: true,
+
+  onToolApprove: async (toolUse) => {
+    console.log(`Tool: ${toolUse.name}`);
+    console.log(`Params:`, toolUse.params);
+
+    // Show approval UI to user
+    const approved = await showApprovalDialog(toolUse);
+
+    return {
+      approved,
+      denyReason: approved ? undefined : 'User denied'
+    };
+  },
+});
+```
+
+**Important:** The `onToolApprove` callback is only called when the built-in approval logic doesn't auto-approve the tool. The approval flow follows this priority:
+
+1. **yolo mode** → Auto-approve (except `ask` category)
+2. **read category** → Auto-approve
+3. **tool's needsApproval** → Check tool-specific logic
+4. **autoEdit mode** → Auto-approve write operations
+5. **session whitelist** → Auto-approve whitelisted tools
+6. **custom callback** → Call `onToolApprove`
+
+**See [APPROVAL.md](APPROVAL.md) for complete documentation including:**
+- Detailed approval flow explanation
+- All usage examples
+- Tool categories and their behavior
+- Best practices for production use
+- Security considerations
 
 ---
 
