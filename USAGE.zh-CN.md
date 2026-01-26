@@ -7,6 +7,7 @@
 - [快速开始](#快速开始)
 - [模型提供商](#模型提供商)
 - [配置选项](#配置选项)
+- [工具审批系统](#工具审批系统)
 - [MCP 集成](#mcp-集成)
 - [技能系统](#技能系统)
 - [自定义模式](#自定义模式)
@@ -218,6 +219,72 @@ await engine.initialize({
 - `default` - 每次工具执行前都询问批准
 - `autoEdit` - 自动批准读/编辑工具，其他工具询问
 - `yolo` - 自动批准所有工具
+
+**有关审批系统的详细信息，请参阅 [APPROVAL.zh-CN.md](APPROVAL.zh-CN.md)**
+
+---
+
+## 工具审批系统
+
+OriCore 提供了一个灵活的工具审批系统，具有三种内置模式和自定义审批处理程序。
+
+### 快速概览
+
+```typescript
+await engine.initialize({
+  approvalMode: 'autoEdit',  // 'default' | 'autoEdit' | 'yolo'
+});
+```
+
+### 审批模式
+
+| 模式 | 读取 | 写入/编辑 | 命令 | 网络 | 用户问题 |
+|------|------|-----------|------|-------|----------|
+| `default` | ✅ 自动 | ❌ 询问 | ❌ 询问 | ❌ 询问 | ❌ 总是询问 |
+| `autoEdit` | ✅ 自动 | ✅ 自动 | ❌ 询问 | ❌ 询问 | ❌ 总是询问 |
+| `yolo` | ✅ 自动 | ✅ 自动 | ✅ 自动* | ✅ 自动 | ❌ 总是询问 |
+
+*高危命令仍需批准
+
+### 自定义审批处理程序
+
+要完全控制，请提供 `onToolApprove` 回调：
+
+```typescript
+await engine.sendMessage({
+  message: '重构代码',
+  write: true,
+
+  onToolApprove: async (toolUse) => {
+    console.log(`工具: ${toolUse.name}`);
+    console.log(`参数:`, toolUse.params);
+
+    // 向用户显示审批界面
+    const approved = await showApprovalDialog(toolUse);
+
+    return {
+      approved,
+      denyReason: approved ? undefined : '用户拒绝'
+    };
+  },
+});
+```
+
+**重要提示：** `onToolApprove` 回调仅在内置审批逻辑未自动批准工具时才会被调用。审批流程遵循以下优先级：
+
+1. **yolo 模式** → 自动批准（除了 `ask` 类别）
+2. **read 类别** → 自动批准
+3. **工具的 needsApproval** → 检查工具特定逻辑
+4. **autoEdit 模式** → 自动批准写入操作
+5. **会话白名单** → 自动批准白名单中的工具
+6. **自定义回调** → 调用 `onToolApprove`
+
+**请参阅 [APPROVAL.zh-CN.md](APPROVAL.zh-CN.md) 获取完整文档，包括：**
+- 详细的审批流程说明
+- 所有使用示例
+- 工具类别及其行为
+- 生产环境最佳实践
+- 安全考虑
 
 ---
 

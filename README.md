@@ -172,6 +172,8 @@ await engine.initialize({
 
 See [USAGE.md](./USAGE.md) for more configuration options.
 
+**Tool Approval System:** See [APPROVAL.md](./APPROVAL.md) for detailed information about the approval system, including approval modes (`default`, `autoEdit`, `yolo`), custom approval handlers, and best practices.
+
 ## Project Structure
 
 ```

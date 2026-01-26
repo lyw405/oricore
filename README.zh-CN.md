@@ -172,6 +172,8 @@ await engine.initialize({
 
 更多配置选项请参阅 [USAGE.zh-CN.md](./USAGE.zh-CN.md)。
 
+**工具审批系统：** 有关审批系统的详细信息，包括审批模式（`default`、`autoEdit`、`yolo`）、自定义审批处理程序和最佳实践，请参阅 [APPROVAL.zh-CN.md](./APPROVAL.zh-CN.md)。
+
 ## 项目结构
 
 ```
