@@ -201,7 +201,7 @@ export class History {
     if (usage.totalTokens < MIN_TOKEN_THRESHOLD) {
       return false;
     }
-    const { context: contextLimit, output: outputLimit } = model.model.limit;
+    const { context: contextLimit, output: outputLimit } = model.model.limit ?? { context: 0, output: 0 };
     const COMPRESSION_RESERVE_TOKENS = {
       MINI_CONTEXT: 10_000,
       SMALL_CONTEXT: 27_000,

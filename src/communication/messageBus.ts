@@ -201,6 +201,32 @@ export class MessageBus extends EventEmitter {
   }
 
   // Request method - generic version for engine package
+  /**
+   * Send a request to the message bus and wait for a response.
+   *
+   * @param method - The method name to call (e.g., 'toolApproval')
+   * @param params - The parameters to pass to the method handler
+   * @param options.timeout - Optional timeout in milliseconds (0 = no timeout)
+   * @returns Promise that resolves with the handler's return value
+   *
+   * @example
+   * // Tool approval with session context
+   * const result = await messageBus.request('toolApproval', {
+   *   toolUse: { name: 'bash', params: { command: 'ls' }, callId: '123' },
+   *   category: 'command',
+   *   sessionId: 'session-abc'  // Used for session identification
+   * });
+   *
+   * @example
+   * // Register a handler for the request
+   * messageBus.registerHandler('toolApproval', async ({ toolUse, category, sessionId }) => {
+   *   // sessionId can be used for:
+   *   // - Logging which session requested approval
+   *   // - UI routing to the correct session window
+   *   // - Multi-session management
+   *   return { approved: true, params: undefined, denyReason: undefined };
+   * });
+   */
   async request(
     method: string,
     params: any,
@@ -247,6 +273,39 @@ export class MessageBus extends EventEmitter {
     }
   }
   // Register handler - generic version for engine package
+  /**
+   * Register a handler for a specific request method.
+   *
+   * @param method - The method name to handle (e.g., 'toolApproval')
+   * @param handler - Async function that receives params and returns a result
+   *
+   * @example
+   * // Tool approval handler with session support
+   * messageBus.registerHandler('toolApproval', async (params) => {
+   *   const { toolUse, category, sessionId } = params;
+   *
+   *   // sessionId enables:
+   *   // 1. Session-specific logging and monitoring
+   *   // 2. UI routing to the correct session window
+   *   // 3. Multi-session approval tracking
+   *   // 4. Session-level permissions and policies
+   *
+   *   console.log(`[${sessionId}] Tool approval request: ${toolUse.name}`);
+   *
+   *   // Return approval result
+   *   return {
+   *     approved: true,
+   *     params: toolUse.params,  // optionally modify params
+   *     denyReason: undefined     // or provide reason if denied
+   *   };
+   * });
+   *
+   * // Backward compatibility: handlers can ignore sessionId
+   * messageBus.registerHandler('toolApproval', async ({ toolUse, category }) => {
+   *   // Old code that doesn't use sessionId still works
+   *   return { approved: true };
+   * });
+   */
   registerHandler(method: string, handler: MessageHandler) {
     this.messageHandlers.set(method, handler);
   }

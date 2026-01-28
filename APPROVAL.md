@@ -381,6 +381,58 @@ type ToolApprovalResult =
     };
 ```
 
+### Advanced: Session Context with MessageBus
+
+When using the `task` tool with agent subtasks, approval requests are sent via `MessageBus` with additional session context:
+
+```typescript
+// Agent tool approval via MessageBus (used internally)
+const result = await messageBus.request('toolApproval', {
+  toolUse: { name: 'bash', params: { command: 'ls' }, callId: '123' },
+  category: 'command',
+  sessionId: 'session-abc'  // Session ID for multi-session management
+});
+```
+
+#### Registering a MessageBus Handler
+
+```typescript
+messageBus.registerHandler('toolApproval', async ({ toolUse, category, sessionId }) => {
+  // sessionId enables:
+  // 1. Session-specific logging: console.log(`[${sessionId}] Approval for ${toolUse.name}`)
+  // 2. UI routing: Route approval dialog to the correct session window
+  // 3. Multi-session management: Track approvals per session
+  // 4. Session-level policies: Apply different rules per session
+
+  console.log(`Session ${sessionId} requesting approval for ${toolUse.name}`);
+
+  // Show approval UI
+  const approved = await showApprovalDialog({
+    tool: toolUse.name,
+    params: toolUse.params,
+    sessionId: sessionId  // Highlight which session initiated the request
+  });
+
+  return {
+    approved,
+    params: toolUse.params,
+    denyReason: approved ? undefined : 'User denied'
+  };
+});
+```
+
+#### Backward Compatibility
+
+Handlers that don't use `sessionId` remain compatible:
+
+```typescript
+// Old handler (still works)
+messageBus.registerHandler('toolApproval', async ({ toolUse, category }) => {
+  // sessionId is simply ignored
+  return { approved: true };
+});
+```
+
 ### Return Values
 
 ```typescript

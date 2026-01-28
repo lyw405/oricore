@@ -129,9 +129,33 @@ assistant: "I'm going to use the ${TOOL_NAMES.TASK} tool to launch the with the 
         }
 
         try {
+          /**
+           * Request tool approval from the UI layer via messageBus.
+           *
+           * Params sent to toolApproval handler:
+           * @param toolUse - The tool invocation request containing name, params, and callId
+           * @param category - Optional approval category (read/write/command/network/ask)
+           * @param sessionId - The session ID that initiated this tool approval request
+           *                    Used for session identification and UI routing
+           *
+           * Expected return from toolApproval handler:
+           * @returns approved - Whether the tool use is approved
+           * @returns params - Optional updated parameters for the tool
+           * @returns denyReason - Optional reason for denial
+           *
+           * Handler registration example:
+           * messageBus.registerHandler('toolApproval', async ({ toolUse, category, sessionId }) => {
+           *   // Handle approval logic, sessionId can be used for:
+           *   // - Logging and tracking which session requested approval
+           *   // - UI session-specific actions (resume, update state)
+           *   // - Multi-session management
+           *   return { approved: true/false, params?: {...}, denyReason?: '...' };
+           * });
+           */
           const result = await messageBus.request('toolApproval', {
             toolUse: opts.toolUse,
             category: opts.category,
+            sessionId,
           });
 
           // Handle both boolean and ToolApprovalResult return types

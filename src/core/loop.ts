@@ -206,6 +206,24 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
   const maxTurns = opts.maxTurns ?? DEFAULT_MAX_TURNS;
   const abortController = new AbortController();
 
+  // Listen to external signal and synchronize with internal abortController
+  // This ensures that when session.cancel is triggered, the LLM request is immediately aborted
+  const abortHandler = () => {
+    if (!abortController.signal.aborted) {
+      abortController.abort();
+    }
+  };
+  if (opts.signal) {
+    opts.signal.addEventListener('abort', abortHandler, { once: true });
+  }
+
+  // Cleanup function to remove event listener
+  const cleanup = () => {
+    if (opts.signal) {
+      opts.signal.removeEventListener('abort', abortHandler);
+    }
+  };
+
   const createCancelError = (): LoopResult => ({
     success: false,
     error: {
@@ -215,14 +233,15 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
     },
   });
 
-  let shouldAtNormalize = true;
-  let shouldThinking = true;
-  while (true) {
-    // Must use separate abortController to prevent ReadStream locking
-    if (opts.signal?.aborted && !abortController.signal.aborted) {
-      abortController.abort();
-      return createCancelError();
-    }
+  try {
+    let shouldAtNormalize = true;
+    let shouldThinking = true;
+    while (true) {
+      // Must use separate abortController to prevent ReadStream locking
+      if (opts.signal?.aborted && !abortController.signal.aborted) {
+        abortController.abort();
+        return createCancelError();
+      }
 
     const startTime = new Date();
     turnsCount++;
@@ -699,6 +718,11 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
       });
     }
   }
+  } finally {
+    // Cleanup: remove event listener to prevent memory leaks
+    cleanup();
+  }
+
   const duration = Date.now() - startTime;
   return {
     success: true,

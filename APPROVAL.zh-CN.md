@@ -387,6 +387,58 @@ type ToolApprovalResult =
     };
 ```
 
+### 高级：使用 MessageBus 的会话上下文
+
+当使用 `task` 工具与 Agent 子任务时，审批请求通过 `MessageBus` 发送，并带有额外的会话上下文：
+
+```typescript
+// 通过 MessageBus 进行的 Agent 工具审批（内部使用）
+const result = await messageBus.request('toolApproval', {
+  toolUse: { name: 'bash', params: { command: 'ls' }, callId: '123' },
+  category: 'command',
+  sessionId: 'session-abc'  // 用于多会话管理的会话 ID
+});
+```
+
+#### 注册 MessageBus 处理器
+
+```typescript
+messageBus.registerHandler('toolApproval', async ({ toolUse, category, sessionId }) => {
+  // sessionId 的作用：
+  // 1. 会话特定日志：console.log(`[${sessionId}] ${toolUse.name} 的审批请求`)
+  // 2. UI 路由：将审批对话框路由到正确的会话窗口
+  // 3. 多会话管理：跟踪每个会话的审批记录
+  // 4. 会话级策略：为每个会话应用不同的规则
+
+  console.log(`会话 ${sessionId} 请求审批 ${toolUse.name}`);
+
+  // 显示审批 UI
+  const approved = await showApprovalDialog({
+    tool: toolUse.name,
+    params: toolUse.params,
+    sessionId: sessionId  // 高亮显示发起请求的会话
+  });
+
+  return {
+    approved,
+    params: toolUse.params,
+    denyReason: approved ? undefined : '用户拒绝'
+  };
+});
+```
+
+#### 向后兼容性
+
+不使用 `sessionId` 的处理器仍然兼容：
+
+```typescript
+// 旧式处理器（仍然有效）
+messageBus.registerHandler('toolApproval', async ({ toolUse, category }) => {
+  // sessionId 会被忽略
+  return { approved: true };
+});
+```
+
 ### 返回值
 
 ```typescript

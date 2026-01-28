@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0.html).
 
+## [1.3.5] - Unreleased
+
+### Added
+
+- **Loop**: External signal synchronization for immediate cancellation
+  - Added event-driven abort signal handling in `runLoop` via `addEventListener`
+  - LLM requests now abort immediately when `session.cancel` is triggered
+  - Automatic cleanup of event listeners prevents memory leaks
+  - Improves responsiveness and resource efficiency during cancellation
+
+- **Models**: Added Kimi K2.5 model support
+  - New model: `moonshotai/kimi-k2.5` with multimodal capabilities (text, image, video)
+  - Added to providers: `openrouter`, `moonshotai`, `moonshotai-cn`, `canopywave`
+  - Features: reasoning support, tool calling, 262K context window
+
+- **Tool Approval**: Enhanced session context with `sessionId`
+  - `toolApproval` requests now include `sessionId` parameter
+  - Enables session-specific logging, UI routing, and multi-session management
+  - Backward compatible - existing handlers can ignore the new parameter
+  - Updated JSDoc documentation for `MessageBus.request()` and `MessageBus.registerHandler()`
+
+- **Grep Tool**: Enhanced result truncation and token management
+  - Added intelligent truncation based on line count (max 1000 lines)
+  - Added line length truncation (max 2000 chars per line)
+  - Added content length truncation (max 262K chars)
+  - Added token-based truncation (max 25K tokens using gpt-tokenizer)
+  - Improved return display with truncation reason and hints
+
+### Changed
+
+- **Documentation**: Enhanced tool approval API documentation
+  - Added comprehensive JSDoc comments with usage examples
+  - Documented `sessionId` parameter and its use cases
+  - Provided backward compatibility notes
+
+- **Models**: Renamed `createModelType` to `apiFormat` for clarity
+  - Changed from `createModelType?: 'anthropic'` to `apiFormat?: 'anthropic' | 'openai' | 'responses'`
+  - Better reflects the purpose of specifying API format
+  - Affects provider configuration and thinking config detection
+
+- **Models**: Added `source` field to Provider interface
+  - Tracks provider origin (`'built-in'` or custom string)
+  - Helps distinguish between built-in and user-configured providers
+  - Applied to all 27 built-in providers
+
+### Fixed
+
+- **History**: Fixed crash when model has no `limit` property
+  - Added fallback `{ context: 0, output: 0 }` for models without limit definition
+  - Prevents `Cannot read property 'context' of undefined` errors
+  - Improves compatibility with custom model configurations
+
+- **Thinking Config**: Fixed provider format detection
+  - Updated detection from `createModelType` to `apiFormat`
+  - Ensures correct Anthropic reasoning model detection
+  - Affects models with `reasoning: true` flag
+
 ## [1.3.3] - 2025-01-26
 
 ### Added
