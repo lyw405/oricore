@@ -5,9 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0.html).
 
-## [1.3.5] - Unreleased
+## [1.3.6] - 2025-01-31
+
+### ⚠️ BREAKING CHANGES
+
+- **AI SDK Upgrade**: Migrated from AI SDK v2 to v3
+  - All `LanguageModelV2*` types renamed to `LanguageModelV3*`
+  - Middleware interface changed from `LanguageModelMiddleware` to `LanguageModelV3Middleware`
+  - Middleware implementations now require `specificationVersion: 'v3'` property
+  - Usage handling updated to support new V3 format (nested token objects with `.total` property)
 
 ### Added
+
+- **Compression System**: New intelligent context overflow management (`src/compression.ts`)
+  - `Compression.prune()` - Prune historical tool outputs to reduce token usage
+  - `isOverflow()` - Determine when context compression is needed
+  - `CompressionConfig` interface with configurable thresholds and protected tools
+  - Two-phase compression: Pruning (fast) → Compaction (LLM-based summary)
+  - Protected tools list (`SKILL`, `TASK`) to preserve critical context
+  - Configurable protection threshold (40k tokens), minimum prune amount (20k tokens)
+  - Protected recent conversation turns (default: 2 turns)
+
+- **History Compression**: Enhanced with two-phase strategy
+  - Phase 1: Prune tool outputs (excluding protected tools like SKILL/TASK)
+  - Phase 2: Compact messages if still over limit after pruning
+  - Returns `pruned` and `pruneResult` in compression result
+  - Language-aware compaction prompts support
+
+- **Language Support**: Multilingual compaction prompts
+  - `language` config parameter passed through loop → history → compact pipeline
+  - `getLanguageInstruction()` utility for localized instructions
+  - `buildCompactSystemPrompt()` integrates language instructions
+
+- **Tool Constants**: Added `TOOL_NAMES.SKILL` constant
+
+- **Export Compression APIs**: Public API exports
+  - `Compression` namespace with `DEFAULT_CONFIG` and `prune()` method
+  - `isOverflow()` function for overflow detection
+  - `CompressionConfig` and `PruneResult` types
+
+### Changed
+
+- **Dependencies**: Upgraded all AI SDK packages to v3
+  - `@ai-sdk/anthropic`: ^2.0.56 → ^3.0.29
+  - `@ai-sdk/cerebras`: ^1.0.33 → ^2.0.24
+  - `@ai-sdk/google`: ^2.0.46 → ^3.0.16
+  - `@ai-sdk/huggingface`: ^0.0.12 → ^1.0.23
+  - `@ai-sdk/mcp`: ^0.0.12 → ^1.0.14
+  - `@ai-sdk/openai`: ^2.0.86 → ^3.0.21
+  - `@ai-sdk/openai-compatible`: ^1.0.29 → ^2.0.22
+  - `@ai-sdk/xai`: ^2.0.40 → ^3.0.41
+  - `@aihubmix/ai-sdk-provider`: ^0.0.6 → ^1.0.3
+  - `ai`: ^5.0.113 → ^6.0.59 (peer dependency)
+
+- **Model Resolution**: Improved model alias handling
+  - Model aliases now get default limit if not defined in models registry
+  - Prevents crashes for undefined model configurations
+
+- **Background Detection**: Added tnpm and cnpm to dev command list
+
+### Fixed
+
+- **Session Config**: Fixed mutability issue in `SessionConfigManager.load()`
+  - Now returns a copy of `DEFAULT_SESSION_CONFIG` instead of reference
+  - Prevents accidental mutation of default config
+
+- **Middleware**: Updated middleware implementations for V3 compatibility
+  - `mergeSystemMessagesMiddleware`: Added `specificationVersion: 'v3'`
+  - `prependSystemMessageMiddleware`: Added `specificationVersion: 'v3'`
+  - Type imports changed from `ai` to `@ai-sdk/provider`
+
+- **Usage**: Fixed token parsing for AI SDK v6 format
+  - Handles nested token objects (e.g., `inputTokens.total`)
+  - Maintains backward compatibility with v5 format
 
 - **Loop**: External signal synchronization for immediate cancellation
   - Added event-driven abort signal handling in `runLoop` via `addEventListener`

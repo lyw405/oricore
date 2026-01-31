@@ -62,6 +62,7 @@ export enum TOOL_NAMES {
   EDIT = 'edit',
   LS = 'ls',
   TASK = 'task',
+  SKILL = 'skill',
 }
 
 export const BASH_EVENTS = {
@@ -69,6 +70,25 @@ export const BASH_EVENTS = {
   MOVE_TO_BACKGROUND: 'bash:move_to_background',
   BACKGROUND_MOVED: 'bash:background_moved',
 } as const;
+
+// ============================================
+// Compression Constants
+// ============================================
+
+// Compaction configuration
+export const COMPACTION_OUTPUT_TOKEN_MAX = 8_192; // Reserved output tokens for compression
+export const COMPACTION_TRIGGER_RATIO = 0.7; // Trigger compression when context usage exceeds 70%
+
+// Pruning configuration
+export const PRUNE_PROTECT_THRESHOLD = 40_000; // Protect threshold: recent 40k tokens not pruned
+export const PRUNE_MINIMUM = 20_000; // Minimum prune amount: skip if below this
+export const PRUNE_PROTECT_TURNS = 2; // Protect recent 2 conversation turns
+// Protected tools list (avoid losing main context information when pruning)
+export const PRUNE_PROTECTED_TOOLS = [TOOL_NAMES.SKILL, TOOL_NAMES.TASK];
+
+// Truncation configuration
+export const TRUNCATE_MAX_LINES = 2000; // Maximum lines
+export const TRUNCATE_MAX_BYTES = 50 * 1024; // Maximum bytes (50KB)
 
 // Reserve 20% buffer for small models
 export const MIN_TOKEN_THRESHOLD = 32_000 * 0.8;

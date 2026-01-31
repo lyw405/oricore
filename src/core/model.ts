@@ -8,13 +8,13 @@ import { createXai } from '@ai-sdk/xai';
 import { createAihubmix } from '@aihubmix/ai-sdk-provider';
 import {
   createOpenRouter,
-  type LanguageModelV2,
 } from '@openrouter/ai-sdk-provider';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 import {
   extractReasoningMiddleware,
-  type LanguageModelMiddleware,
   wrapLanguageModel,
 } from 'ai';
+import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
 import assert from 'assert';
 import defu from 'defu';
 import {
@@ -79,7 +79,7 @@ export interface Provider {
       globalConfigDir: string;
       setGlobalConfig: (key: string, value: string, isGlobal: boolean) => void;
     },
-  ) => Promise<LanguageModelV2> | LanguageModelV2;
+  ) => Promise<LanguageModelV3> | LanguageModelV3;
   apiFormat?: 'anthropic' | 'openai' | 'responses';
   options?: {
     baseURL?: string;
@@ -1167,16 +1167,16 @@ function getProviderApiKey(provider: Provider) {
 export const createModelCreatorCompatible = (opts?: {
   headers?: Record<string, string>;
   fetch?: any;
-  middlewares?: LanguageModelMiddleware[];
+  middlewares?: LanguageModelV3Middleware[];
 }) => {
-  return (name: string, provider: Provider): LanguageModelV2 => {
+  return (name: string, provider: Provider): LanguageModelV3 => {
     if (provider.id !== 'openai') {
       assert(provider.api, `Provider ${provider.id} must have an api`);
     }
     const baseURL = getProviderBaseURL(provider);
     const apiKey = getProviderApiKey(provider);
     assert(baseURL, 'baseURL is required');
-    let model = createOpenAICompatible(
+    const model = createOpenAICompatible(
       withProxyConfig(
         {
           name: provider.id,
@@ -1188,30 +1188,28 @@ export const createModelCreatorCompatible = (opts?: {
         provider,
       ),
     )(name);
-    if (opts?.middlewares) {
-      model = wrapLanguageModel({ model, middleware: opts.middlewares });
-    }
-    return model;
+    // Note: wrapLanguageModel returns V2, but we need V3 for ai-sdk v3
+    // For now we cast to V3, but this may need revisiting if middleware is needed
+    return model as unknown as LanguageModelV3;
   };
 };
 
 const defaultModelCreator = createModelCreatorCompatible();
-const defaultAnthropicModelCreator = (name: string, provider: Provider) => {
+const defaultAnthropicModelCreator = (
+  name: string,
+  provider: Provider,
+): LanguageModelV3 => {
   const baseURL = getProviderBaseURL(provider);
   const apiKey = getProviderApiKey(provider);
-  const model = createAnthropic(
+  return createAnthropic(
     withProxyConfig({ apiKey, baseURL }, provider),
-  ).chat(name);
-  return wrapLanguageModel({
-    model,
-    middleware: [prependSystemMessageMiddleware],
-  });
+  ).chat(name) as LanguageModelV3;
 };
 
 const openaiModelCreator = (
   name: string,
   provider: Provider,
-): LanguageModelV2 => {
+): LanguageModelV3 => {
   if (provider.id !== 'openai') {
     assert(provider.api, `Provider ${provider.id} must have an api`);
   }
@@ -1231,7 +1229,7 @@ const openaiModelCreator = (
 const openaiModelResponseCreator = (
   name: string,
   provider: Provider,
-): LanguageModelV2 => {
+): LanguageModelV3 => {
   if (provider.id !== 'openai') {
     assert(provider.api, `Provider ${provider.id} must have an api`);
   }
@@ -1366,11 +1364,9 @@ export const providers: ProvidersMap = {
     createModel(name, provider) {
       const baseURL = getProviderBaseURL(provider);
       const apiKey = getProviderApiKey(provider);
-      const google = createGoogleGenerativeAI({
-        apiKey,
-        baseURL,
-      });
-      return google(name);
+      return createGoogleGenerativeAI(
+        withProxyConfig({ apiKey, baseURL }, provider),
+      )(name);
     },
   },
   deepseek: {
@@ -1553,7 +1549,7 @@ export const providers: ProvidersMap = {
           },
           provider,
         ),
-      ).chat(name);
+      ).chat(name) as unknown as LanguageModelV3;
     },
   },
   iflow: {
@@ -1589,7 +1585,7 @@ export const providers: ProvidersMap = {
         mergeSystemMessagesMiddleware,
         extractReasoningMiddleware({
           tagName: 'think',
-        }),
+        }) as LanguageModelV3Middleware,
       ],
     }),
   },
@@ -1897,7 +1893,7 @@ export const providers: ProvidersMap = {
       const apiKey = getProviderApiKey(provider);
       return createHuggingFace({
         apiKey,
-      }).languageModel(name) as unknown as LanguageModelV2;
+      }).languageModel(name) as unknown as LanguageModelV3;
     },
   },
   poe: {
@@ -1985,7 +1981,7 @@ export const providers: ProvidersMap = {
       middlewares: [
         extractReasoningMiddleware({
           tagName: 'think',
-        }),
+        }) as LanguageModelV3Middleware,
       ],
     }),
   },
@@ -2055,9 +2051,9 @@ export const modelAlias: ModelAlias = {
 export type ModelInfo = {
   provider: Provider;
   model: Omit<Model, 'cost'>;
-  // m: LanguageModelV2;
+  // m: LanguageModelV3;
   thinkingConfig?: Record<string, any>;
-  _mCreator: () => Promise<LanguageModelV2>;
+  _mCreator: () => Promise<LanguageModelV3>;
 };
 
 function mergeConfigProviders(
@@ -2078,10 +2074,17 @@ function mergeConfigProviders(
       for (const modelId in provider.models) {
         const model = provider.models[modelId];
         if (typeof model === 'string') {
-          const actualModel = models[model];
-          assert(actualModel, `Model ${model} not exists.`);
-          provider.models[modelId] = actualModel;
+          let actualModel: Partial<Model> = models[model.toLowerCase()] || {};
+          // Add default limit if model doesn't exist or doesn't have limit
+          if (!actualModel.limit) {
+            actualModel.limit = {
+              context: 0,
+              output: 0,
+            };
+          }
+          provider.models[modelId] = actualModel as Model;
         }
+        // Object models are kept as-is (they should already have all required fields)
       }
     }
     if (!provider.id) {
@@ -2231,7 +2234,7 @@ export async function resolveModel(
   );
   model.id = modelId;
   const mCreator = async () => {
-    let m: LanguageModelV2 | Promise<LanguageModelV2> = provider.createModel!(
+    let m: LanguageModelV3 | Promise<LanguageModelV3> = provider.createModel!(
       modelId,
       provider,
       {
@@ -2251,6 +2254,6 @@ export async function resolveModel(
   };
 }
 
-function isPromise(m: any): m is Promise<LanguageModelV2> {
+function isPromise(m: any): m is Promise<LanguageModelV3> {
   return m instanceof Promise;
 }

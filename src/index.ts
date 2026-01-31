@@ -32,6 +32,10 @@ export { JsonlLogger } from './jsonl';
 export { History } from './core/history';
 export { Usage } from './core/usage';
 
+// Compression
+export { Compression, isOverflow } from './compression';
+export type { CompressionConfig, PruneResult } from './compression';
+
 // Core utilities
 export { randomUUID } from './utils/randomUUID';
 

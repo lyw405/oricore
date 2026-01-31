@@ -1,6 +1,7 @@
-import type { LanguageModelMiddleware } from 'ai';
+import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
 
-export const prependSystemMessageMiddleware: LanguageModelMiddleware = {
+export const prependSystemMessageMiddleware: LanguageModelV3Middleware = {
+  specificationVersion: 'v3',
   transformParams: async ({ params }) => {
     return {
       ...params,

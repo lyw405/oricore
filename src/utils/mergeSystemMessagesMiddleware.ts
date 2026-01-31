@@ -1,6 +1,7 @@
-import type { LanguageModelMiddleware } from 'ai';
+import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
 
-export const mergeSystemMessagesMiddleware: LanguageModelMiddleware = {
+export const mergeSystemMessagesMiddleware: LanguageModelV3Middleware = {
+  specificationVersion: 'v3',
   transformParams: async ({ params }) => {
     const mergedPrompt: typeof params.prompt = [];
     let pendingSystemContent: string[] = [];
