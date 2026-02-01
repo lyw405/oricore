@@ -2,7 +2,7 @@
 
 # OriCore
 
-**A powerful, standalone AI engine with multi-model support, tool calling, and extensible architecture**
+**Powerful AI Engine Library - Build Smart Assistants in 5 Lines of Code**
 
 [![npm version](https://badge.fury.io/js/oricore.svg)](https://www.npmjs.com/package/oricore)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -11,202 +11,139 @@
 
 </div>
 
-## About OriCore
+---
 
-OriCore is a comprehensive AI engine that provides the core functionality for building intelligent assistants. It offers a rich set of tools, multi-model support, and extensible architecture through MCP (Model Context Protocol) and Skills.
+## What is OriCore?
 
-### Key Features
+OriCore is a fully-featured **AI Engine Library** that lets you easily integrate powerful AI capabilities into any application.
 
-- **Multi-Model Support**: Compatible with 40+ AI providers including OpenAI, Anthropic, Google, DeepSeek, and more
-- **Rich Tool System**: Built-in tools for file operations (read, write, edit), code search (grep, glob), shell commands, and web requests
-- **Interaction Modes**: Specialized modes for different tasks - brainstorming, planning, code review, debugging, and default
-- **MCP Integration**: Extensible via Model Context Protocol for custom tools and capabilities
-- **Skill System**: Load and use custom skills from local or remote sources (GitHub, GitLab)
-- **Agent Framework**: Built-in agents for complex multi-step tasks (explore, general-purpose)
-- **Session Management**: Persistent conversation history with session resumption
-- **Streaming Support**: Real-time text delta streaming for responsive interactions
-- **Fully Typed**: Complete TypeScript support with comprehensive type definitions
-- **Zero Configuration**: Works out of the box with sensible defaults
+- **Support for 40+ AI providers** (OpenAI, Claude, DeepSeek, Zhipu AI, etc.)
+- **Complete built-in tool system** (file read/write, code search, shell commands, network requests)
+- **Session management** + **Context compression**
+- **MCP protocol** + **Skill system** for unlimited extensions
+- **5 professional interaction modes** (brainstorm, plan, review, debug, default)
 
-### Use Cases
-
-- Build custom AI assistants
-- Integrate AI capabilities into IDE extensions
-- Create automated code review systems
-- Develop intelligent debugging tools
-- Build educational platforms
-- Implement automated documentation generation
-
-## Installation
-
-```bash
-npm install oricore
-```
-
-```bash
-# Using pnpm
-pnpm add oricore
-
-# Using bun
-bun add oricore
-```
-
-### Optional Dependencies
-
-OriCore has support for additional features through optional dependencies:
-
-**PDF Support**
-```bash
-npm install pdf-parse
-```
-The `read` tool can parse PDF files when `pdf-parse` is installed. Without it, PDF reading will be disabled.
-
-## Quick Start
+Build AI-powered products with just **5 lines of code**:
 
 ```typescript
 import { createEngine } from 'oricore';
 
-// 1. Create the engine
-const engine = createEngine({
-  productName: 'MyAIAssistant',
-  version: '1.0.0',
-});
+const engine = createEngine({ productName: 'MyApp', version: '1.0.0' });
+await engine.initialize({ model: 'deepseek/deepseek-chat', provider: { deepseek: { apiKey: 'your-key' } } });
 
-// 2. Initialize with model and API key
+const result = await engine.sendMessage({ message: 'Analyze this project structure', write: true });
+console.log(result.data.text);
+```
+
+---
+
+## Quick Start
+
+```bash
+npm install oricore ai
+```
+
+```typescript
+import { createEngine } from 'oricore';
+
+const engine = createEngine({ productName: 'MyAIAssistant', version: '1.0.0' });
 await engine.initialize({
-  model: 'openai/gpt-5.2-codex',
-  provider: {
-    openai: {
-      apiKey: 'your-api-key',
-      baseURL: 'https://api.openai.com/v1',
-    },
-  },
+  model: 'deepseek/deepseek-chat',
+  provider: { deepseek: { apiKey: 'your-api-key' } },
 });
 
-// 3. Send a message
 const result = await engine.sendMessage({
-  message: 'Create a TypeScript function to calculate fibonacci',
+  message: 'Create a TypeScript function to calculate Fibonacci',
   write: true,
 });
 
 console.log(result.data.text);
-
-// 4. Cleanup
 await engine.shutdown();
 ```
 
-## Interaction Modes
+[📖 5-Minute Quick Start Guide](docs/QUICKSTART.md)
 
-OriCore provides specialized modes for different tasks:
+---
 
-```typescript
-// Brainstorm mode - interactive design exploration
-engine.setMode('brainstorm');
-const design = await engine.sendMessageWithMode('I want to build a task management app');
+## Why OriCore?
 
-// Plan mode - create implementation plans
-engine.setMode('plan');
-const plan = await engine.sendMessageWithMode('Create a plan for adding user authentication');
+| Feature | OriCore | LangChain | Vercel AI SDK | Claude Agent SDK |
+|---------|---------|-----------|---------------|------------------|
+| **Multi-provider** | 40+ providers | Multiple | Via AI SDK | Anthropic only |
+| **Built-in Tools** | Complete set | Basic | Implement yourself | Limited |
+| **Session Mgmt** | Persistence + compression | Manual | Implement yourself | |
+| **MCP Support** | Native | | | |
+| **Skill System** | Local/GitHub/GitLab | | | |
+| **Agent Framework** | Specialized agents | Complex | | Basic |
+| **Interaction Modes** | 5 professional modes | | | |
 
-// Review mode - code review and analysis
-engine.setMode('review');
-const review = await engine.sendMessageWithMode('Review this code: ...');
+**Core Advantages:**
+- 🎯 Built for AI Assistants - Every feature designed for real assistant scenarios
+- 🔧 Complete Tool System - Production-ready tools, works out of the box
+- 🔄 MCP & Skill Extensions - Connect any MCP server, load custom skills
+- 🧠 Professional Modes - Modes optimized for different tasks
+- 💾 Production-Grade Sessions - Persistence, compression, cost tracking
 
-// Debug mode - troubleshooting
-engine.setMode('debug');
-const fix = await engine.sendMessageWithMode('Help debug this error: ...');
-```
+---
 
 ## Built-in Tools
 
-OriCore includes a comprehensive set of tools:
-
-| Tool | Description |
-|------|-------------|
-| `read` | Read file contents (supports text, images, and PDF*) |
-| `write` | Write new files |
-| `edit` | Edit existing files with search/replace |
+| Tool | Function |
+|------|----------|
+| `read` | Read files (text, images, PDF) |
+| `write` | Write files |
+| `edit` | Edit files (search & replace) |
 | `glob` | Find files by pattern |
 | `grep` | Search file contents |
 | `bash` | Execute shell commands |
 | `fetch` | Make HTTP requests |
-| `askUserQuestion` | Interactive Q&A with users |
-| `task` | Spawn specialized agents |
+| `task` | Launch specialized agents |
 | `todo` | Track task progress |
+| `askUserQuestion` | Interactive Q&A with users |
 
-*PDF support requires the optional `pdf-parse` package (see below)
+[📖 Tools Documentation](docs/TOOLS.md)
 
-## Configuration
+---
 
-### Full Configuration Example
+## Use Cases
 
-```typescript
-await engine.initialize({
-  model: 'openai/gpt-5.2-codex',
-  planModel: 'openai/gpt-5.2-codex',
-  approvalMode: 'autoEdit',
-  language: 'en',
-  tools: {
-    read: true,
-    write: true,
-    bash: true,
-  },
-  provider: {
-    openai: {
-      apiKey: 'your-api-key',
-      baseURL: 'https://api.openai.com/v1',
-    },
-  },
-});
-```
+- **Build Custom AI Assistants** - Chatbots, customer service systems
+- **IDE Integration** - Code assistants, smart autocomplete
+- **Code Review** - Automated code review systems
+- **Debugging Tools** - Intelligent error diagnosis
+- **Education Platforms** - Programming teaching assistants
+- **Documentation Generation** - Automated documentation generation
 
-### Supported Providers
+---
 
-| Provider | Model Example | API Base URL |
-|----------|---------------|--------------|
-| OpenAI | `openai/gpt-5.2-codex` | `https://api.openai.com/v1` |
-| Anthropic | `anthropic/claude-opus-4-5` | `https://api.anthropic.com` |
-| Google | `google/gemini-3-flash-preview` | `https://generativelanguage.googleapis.com` |
-| DeepSeek | `deepseek/deepseek-chat` | `https://api.deepseek.com` |
-| Zhipu AI | `zhipuai/glm-4.7` | `https://open.bigmodel.cn/api/paas/v4` |
+## Documentation
 
-See [USAGE.md](./USAGE.md) for more configuration options.
+### Getting Started
+- **[5-Minute Quick Start](docs/QUICKSTART.md)** - Get up to speed with OriCore
+- **[Tutorials](docs/TUTORIALS.md)** - Practical examples
 
-**Tool Approval System:** See [APPROVAL.md](./APPROVAL.md) for detailed information about the approval system, including approval modes (`default`, `autoEdit`, `yolo`), custom approval handlers, and best practices.
+### Core Features
+- **[API Reference](docs/API.md)** - Complete API documentation
+- **[Configuration Guide](docs/CONFIG.md)** - All configuration options
+- **[Tools System](docs/TOOLS.md)** - Built-in tools guide
+- **[Interaction Modes](docs/MODES.md)** - 5 professional modes
 
-## Project Structure
+### Advanced Features
+- **[Session Management](docs/SESSIONS.md)** - Persistence & context compression
+- **[Event System](docs/EVENTS.md)** - Message bus & events
+- **[MCP Integration](docs/MCP.md)** - MCP protocol support
+- **[Skill System](docs/SKILLS.md)** - Custom skill loading
+- **[Approval System](docs/APPROVAL.md)** - Tool execution permission control
 
-```
-oricore/
-├── src/
-│   ├── api/           # Main Engine API
-│   ├── core/          # Core functionality (loop, context, config)
-│   ├── tools/         # Built-in tools
-│   ├── modes/         # Interaction modes
-│   ├── mcp/           # MCP integration
-│   ├── skill/         # Skill system
-│   ├── agent/         # Agent framework
-│   ├── session/       # Session management
-│   └── utils/         # Utilities
-├── examples/          # Usage examples
-└── dist/              # Compiled output
-```
-
-## Statement
-
-This project references the core architecture of the following excellent project:
-- **[neovate-code](https://github.com/neovateai/neovate-code)** - Core AI engine architecture
-
-OriCore has been refactored and streamlined on this foundation, removing UI, CLI, and other peripheral features to focus on providing a lightweight, standalone AI engine library that can be easily integrated into any project.
+---
 
 ## License
 
 MIT © [lyw405](https://github.com/lyw405)
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
 ## Support
 
-If you have any questions or issues, please [open an issue](https://github.com/lyw405/oricore/issues) on GitHub.
+- **GitHub**: [lyw405/oricore](https://github.com/lyw405/oricore)
+- **Issues**: [Report a problem](https://github.com/lyw405/oricore/issues)
