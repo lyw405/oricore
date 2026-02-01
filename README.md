@@ -67,22 +67,22 @@ await engine.shutdown();
 
 ## Why OriCore?
 
-| Feature | OriCore | LangChain | Vercel AI SDK | Claude Agent SDK |
-|---------|---------|-----------|---------------|------------------|
-| **Multi-provider** | 40+ providers | Multiple | Via AI SDK | Anthropic only |
-| **Built-in Tools** | Complete set | Basic | Implement yourself | Limited |
-| **Session Mgmt** | Persistence + compression | Manual | Implement yourself | |
-| **MCP Support** | Native | | | |
-| **Skill System** | Local/GitHub/GitLab | | | |
-| **Agent Framework** | Specialized agents | Complex | | Basic |
-| **Interaction Modes** | 5 professional modes | | | |
+| What You Need | OriCore | Others |
+|---------------|---------|--------|
+| **Build an AI assistant fast** | ✅ 5 lines of code | ❌ 100+ lines of setup |
+| **Work with any AI provider** | ✅ 40+ providers unified | ⚠️ Provider-specific SDKs |
+| **Ready-to-use tools** | ✅ File, shell, search, web | ❌ Build everything yourself |
+| **Save on API costs** | ✅ Auto context compression | ❌ Pay for full context every time |
+| **Extend with plugins** | ✅ MCP + Skills | ❌ Complex or impossible |
+| **Switch AI providers** | ✅ Change 1 line of code | ❌ Rewrite integration code |
 
-**Core Advantages:**
-- 🎯 Built for AI Assistants - Every feature designed for real assistant scenarios
-- 🔧 Complete Tool System - Production-ready tools, works out of the box
-- 🔄 MCP & Skill Extensions - Connect any MCP server, load custom skills
-- 🧠 Professional Modes - Modes optimized for different tasks
-- 💾 Production-Grade Sessions - Persistence, compression, cost tracking
+**Built for developers who need to ship AI features fast:**
+
+- **5-minute setup** - Get a working AI assistant with file access, code search, and shell commands
+- **No vendor lock-in** - Switch between OpenAI, Claude, DeepSeek, etc. anytime
+- **Production-ready** - Built-in session persistence, cost tracking, and error handling
+- **Extensible** - Add custom tools via MCP servers or local skill files
+- **AI-aware** - Context compression and specialized modes for different tasks
 
 ---
 
