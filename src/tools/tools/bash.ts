@@ -4,9 +4,9 @@
  * Provides shell command execution with security validation and background task support.
  *
  * Architecture:
- * - Security validation: bash-security.ts
- * - Output processing: bash-output.ts
- * - Constants: bash-constants.ts
+ * - Security validation: bash/security.ts
+ * - Output processing: bash/output.ts
+ * - Constants: bash/constants.ts
  * - Tool creation and command execution: this file
  */
 import crypto from 'crypto';
@@ -29,21 +29,21 @@ import {
   isBannedCommand,
   isHighRiskCommand,
   validateCommand,
-} from '../../utils/bash-security';
+} from '../../utils/bash/security';
 // Import output functions
 import {
   formatExecutionResult,
   getMaxOutputLimit,
   trimEmptyLines,
   truncateOutput,
-} from '../../utils/bash-output';
+} from '../../utils/bash/output';
 // Import constants
 import {
   BANNED_COMMANDS,
   BACKGROUND_CHECK_INTERVAL,
   DEFAULT_TIMEOUT,
   MAX_TIMEOUT,
-} from '../../utils/bash-constants';
+} from '../../utils/bash/constants';
 
 // Re-export functions for testing compatibility
 export {

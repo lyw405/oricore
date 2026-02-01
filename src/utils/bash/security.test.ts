@@ -1,5 +1,5 @@
 /**
- * Unit tests for bash-security.ts
+ * Unit tests for bash/security.ts
  * Tests for command validation, security checks, and risk detection.
  */
 
@@ -10,9 +10,9 @@ import {
   isHighRiskCommand,
   isBannedCommand,
   validateCommand,
-} from './bash-security';
+} from './security';
 
-describe('bash-security', () => {
+describe('bash/security', () => {
   // ========================================================================
   // getCommandRoot
   // ========================================================================

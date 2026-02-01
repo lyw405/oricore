@@ -3,7 +3,7 @@
  * Provides functions to validate shell commands and detect security risks.
  */
 
-import { BANNED_COMMANDS } from './bash-constants';
+import { BANNED_COMMANDS } from './constants';
 
 /**
  * Extract the root command from a command string.

@@ -1,5 +1,5 @@
 import { BACKGROUND_THRESHOLD_MS } from '../core/constants';
-import { getCommandRoot } from './bash-security';
+import { getCommandRoot } from './bash/security';
 
 const DEV_COMMANDS = [
   'npm',
@@ -21,7 +21,7 @@ const DEV_COMMANDS = [
 ];
 
 // Re-export for backward compatibility
-export { getCommandRoot } from './bash-security';
+export { getCommandRoot } from './bash/security';
 
 export function shouldRunInBackground(
   command: string,

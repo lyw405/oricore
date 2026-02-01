@@ -1,5 +1,5 @@
 /**
- * Unit tests for bash-output.ts
+ * Unit tests for bash/output.ts
  * Tests for output processing, formatting, and truncation.
  */
 
@@ -9,9 +9,9 @@ import {
   getMaxOutputLimit,
   truncateOutput,
   formatExecutionResult,
-} from './bash-output';
+} from './output';
 
-describe('bash-output', () => {
+describe('bash/output', () => {
   // ========================================================================
   // trimEmptyLines
   // ========================================================================

@@ -3,12 +3,12 @@
  * Provides functions to format, truncate, and process command output.
  */
 
-import { getErrorMessage } from './error';
+import { getErrorMessage } from '../error';
 import {
   DEFAULT_OUTPUT_LIMIT,
   ENV_OUTPUT_LIMIT,
   MAX_OUTPUT_LIMIT,
-} from './bash-constants';
+} from './constants';
 
 /**
  * Remove leading and trailing empty lines from content.

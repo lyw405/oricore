@@ -1,6 +1,6 @@
 /**
  * Tests for bash tool re-exports.
- * Verifies that functions from bash-security and bash-output are properly re-exported.
+ * Verifies that functions from bash/security and bash/output are properly re-exported.
  */
 import os from 'os';
 import { describe, expect, test } from 'vitest';
@@ -17,7 +17,7 @@ import {
 
 describe('bash tool re-exports', () => {
   // These tests verify that the re-exported functions work correctly
-  // Full unit tests are in bash-security.test.ts and bash-output.test.ts
+  // Full unit tests are in bash/security.test.ts and bash/output.test.ts
 
   test('should re-export hasCommandSubstitution', () => {
     expect(hasCommandSubstitution('echo $(whoami)')).toBe(true);
