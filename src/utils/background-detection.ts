@@ -1,4 +1,5 @@
 import { BACKGROUND_THRESHOLD_MS } from '../core/constants';
+import { getCommandRoot } from './bash-security';
 
 const DEV_COMMANDS = [
   'npm',
@@ -19,14 +20,8 @@ const DEV_COMMANDS = [
   'pytest',
 ];
 
-export function getCommandRoot(command: string): string | undefined {
-  return command
-    .trim()
-    .replace(/[{}()]/g, '')
-    .split(/[\s;&|]+/)[0]
-    ?.split(/[\/\\]/)
-    .pop();
-}
+// Re-export for backward compatibility
+export { getCommandRoot } from './bash-security';
 
 export function shouldRunInBackground(
   command: string,

@@ -1,3 +1,14 @@
+/**
+ * Bash tool implementation.
+ *
+ * Provides shell command execution with security validation and background task support.
+ *
+ * Architecture:
+ * - Security validation: bash-security.ts
+ * - Output processing: bash-output.ts
+ * - Constants: bash-constants.ts
+ * - Tool creation and command execution: this file
+ */
 import crypto from 'crypto';
 import createDebug from 'debug';
 import fs from 'fs';
@@ -11,291 +22,58 @@ import { createTool } from '../tool';
 import { shouldRunInBackground } from '../../utils/background-detection';
 import { getErrorMessage } from '../../utils/error';
 import { shellExecute } from '../../utils/shell-execution';
+// Import security functions
+import {
+  getCommandRoot,
+  hasCommandSubstitution,
+  isBannedCommand,
+  isHighRiskCommand,
+  validateCommand,
+} from '../../utils/bash-security';
+// Import output functions
+import {
+  formatExecutionResult,
+  getMaxOutputLimit,
+  trimEmptyLines,
+  truncateOutput,
+} from '../../utils/bash-output';
+// Import constants
+import {
+  BANNED_COMMANDS,
+  BACKGROUND_CHECK_INTERVAL,
+  DEFAULT_TIMEOUT,
+  MAX_TIMEOUT,
+} from '../../utils/bash-constants';
 
-// Local type definition for bash background events
+// Re-export functions for testing compatibility
+export {
+  getCommandRoot,
+  hasCommandSubstitution,
+  isHighRiskCommand,
+};
+export { getMaxOutputLimit, trimEmptyLines, truncateOutput };
+
+const debug = createDebug('oricore:tools:bash');
+
+// ============================================================================
+// Local Types
+// ============================================================================
+
+/** Local type definition for bash background events. */
 type BashPromptBackgroundEvent = {
   taskId: string;
   command: string;
   currentOutput: string;
 };
 
-const debug = createDebug('oricore:tools:bash');
-
-const BANNED_COMMANDS = [
-  'alias',
-  'aria2c',
-  'axel',
-  'bash',
-  'chrome',
-  'curl',
-  'curlie',
-  'eval',
-  'firefox',
-  'fish',
-  'http-prompt',
-  'httpie',
-  'links',
-  'lynx',
-  'nc',
-  'rm',
-  'safari',
-  'sh',
-  'source',
-  'telnet',
-  'w3m',
-  'wget',
-  'xh',
-  'zsh',
-];
-
-const DEFAULT_TIMEOUT = 2 * 60 * 1000; // 2 minutes
-const MAX_TIMEOUT = 10 * 60 * 1000; // 10 minutes
-const BACKGROUND_CHECK_INTERVAL = 500; // ms
-
-const DEFAULT_OUTPUT_LIMIT = 30_000;
-const MAX_OUTPUT_LIMIT = 150_000;
-const ENV_OUTPUT_LIMIT = 'BASH_MAX_OUTPUT_LENGTH';
-
-export function trimEmptyLines(content: string): string {
-  const lines = content.split('\n');
-
-  let start = 0;
-  while (start < lines.length && lines[start].trim() === '') {
-    start++;
-  }
-
-  let end = lines.length - 1;
-  while (end > start && lines[end].trim() === '') {
-    end--;
-  }
-
-  return lines.slice(start, end + 1).join('\n');
-}
-
-export function getMaxOutputLimit(): number {
-  const envValue = process.env[ENV_OUTPUT_LIMIT];
-  if (!envValue) return DEFAULT_OUTPUT_LIMIT;
-
-  const limit = parseInt(envValue, 10);
-  if (isNaN(limit) || limit <= 0) return DEFAULT_OUTPUT_LIMIT;
-
-  return Math.min(limit, MAX_OUTPUT_LIMIT);
-}
-
-export function truncateOutput(content: string, limit?: number): string {
-  const trimmed = trimEmptyLines(content);
-  const maxLimit = limit ?? getMaxOutputLimit();
-
-  if (trimmed.length <= maxLimit) {
-    return trimmed;
-  }
-
-  const kept = trimmed.slice(0, maxLimit);
-  const droppedContent = trimmed.slice(maxLimit);
-  const droppedLines = droppedContent.split('\n').length;
-
-  return `${kept}\n\n... [${droppedLines} lines truncated] ...`;
-}
-
-function getCommandRoot(command: string): string | undefined {
-  return command
-    .trim()
-    .replace(/[{}()]/g, '')
-    .split(/[\s;&|]+/)[0]
-    ?.split(/[/\\]/)
-    .pop();
-}
+// ============================================================================
+// Background Task Helpers
+// ============================================================================
 
 /**
- * Check if command contains command substitution ($() or backticks) outside of safe contexts.
- * Safe contexts:
- * - Inside single quotes (everything is literal)
- * - Escaped backticks inside double quotes
- * @internal exported for testing
+ * Extract background PIDs from temp file created by pgrep.
+ * Returns non-PID lines via console.error for debugging.
  */
-export function hasCommandSubstitution(command: string): boolean {
-  let inSingleQuote = false;
-  let inDoubleQuote = false;
-  let escaped = false;
-
-  for (let i = 0; i < command.length; i++) {
-    const char = command[i];
-
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-
-    if (char === '\\') {
-      escaped = true;
-      continue;
-    }
-
-    if (char === "'" && !inDoubleQuote) {
-      inSingleQuote = !inSingleQuote;
-      continue;
-    }
-
-    if (char === '"' && !inSingleQuote) {
-      inDoubleQuote = !inDoubleQuote;
-      continue;
-    }
-
-    if (inSingleQuote) {
-      continue;
-    }
-
-    if (char === '`') {
-      return true;
-    }
-
-    if (char === '$' && command[i + 1] === '(') {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Split command by pipe segments, handling quoted strings correctly
- * Example: "echo 'test|value' | grep test" => ["echo 'test|value'", "grep test"]
- */
-function splitPipelineSegments(command: string): string[] {
-  const segments: string[] = [];
-  let current = '';
-  let inSingleQuote = false;
-  let inDoubleQuote = false;
-  let escaped = false;
-
-  for (let i = 0; i < command.length; i++) {
-    const char = command[i];
-
-    if (escaped) {
-      current += char;
-      escaped = false;
-      continue;
-    }
-
-    if (char === '\\') {
-      escaped = true;
-      current += char;
-      continue;
-    }
-
-    if (char === "'" && !inDoubleQuote) {
-      inSingleQuote = !inSingleQuote;
-      current += char;
-      continue;
-    }
-
-    if (char === '"' && !inSingleQuote) {
-      inDoubleQuote = !inDoubleQuote;
-      current += char;
-      continue;
-    }
-
-    if (char === '|' && !inSingleQuote && !inDoubleQuote) {
-      if (current.trim()) {
-        segments.push(current.trim());
-      }
-      current = '';
-      continue;
-    }
-
-    current += char;
-  }
-
-  if (current.trim()) {
-    segments.push(current.trim());
-  }
-
-  return segments;
-}
-
-/**
- * Check if a single command segment is high risk
- * This is used as a fallback evaluation for each pipeline segment
- */
-function isSegmentHighRisk(segment: string): boolean {
-  const highRiskPatterns = [
-    /rm\s+.*(-rf|--recursive)/i,
-    /sudo/i,
-    /dd\s+if=/i,
-    /mkfs/i,
-    /fdisk/i,
-    /format/i,
-    /del\s+.*\/[qs]/i,
-  ];
-
-  if (hasCommandSubstitution(segment)) {
-    return true;
-  }
-
-  const commandRoot = getCommandRoot(segment);
-  if (!commandRoot) {
-    return true;
-  }
-
-  return (
-    highRiskPatterns.some((pattern) => pattern.test(segment)) ||
-    BANNED_COMMANDS.includes(commandRoot.toLowerCase())
-  );
-}
-
-/**
- * Check if command is high risk with pipeline segment fallback evaluation
- * Implements the same approach as codex PR #7544:
- * - First check the full command
- * - If command contains pipes, evaluate each segment separately
- * - If any segment is high risk, the entire command is high risk
- * @internal exported for testing
- */
-export function isHighRiskCommand(command: string): boolean {
-  // Legacy patterns for specific dangerous combinations
-  const legacyDangerousCombinations = [/curl.*\|.*sh/i, /wget.*\|.*sh/i];
-
-  // Quick check for legacy dangerous combinations
-  if (legacyDangerousCombinations.some((pattern) => pattern.test(command))) {
-    return true;
-  }
-
-  // Check if command contains pipeline
-  if (command.includes('|')) {
-    // Split by pipeline and evaluate each segment
-    const segments = splitPipelineSegments(command);
-
-    // Fallback evaluation: check each segment independently
-    for (const segment of segments) {
-      if (isSegmentHighRisk(segment)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  // For non-pipeline commands, use segment risk check
-  return isSegmentHighRisk(command);
-}
-
-function validateCommand(command: string): string | null {
-  if (!command.trim()) {
-    return 'Command cannot be empty.';
-  }
-
-  const commandRoot = getCommandRoot(command);
-  if (!commandRoot) {
-    return 'Could not identify command root.';
-  }
-
-  if (hasCommandSubstitution(command)) {
-    return 'Command substitution is not allowed for security reasons.';
-  }
-
-  return null;
-}
-
 function extractBackgroundPIDs(
   tempFilePath: string,
   mainPid: number | null | undefined,
@@ -323,11 +101,14 @@ function extractBackgroundPIDs(
   return backgroundPIDs;
 }
 
+/**
+ * Create result object for background task.
+ */
 function createBackgroundResult(
   command: string,
   backgroundTaskId: string,
   outputBuffer: string,
-) {
+): { shouldReturn: true; result: { llmContent: string; backgroundTaskId: string } } {
   const truncated = truncateOutput(outputBuffer);
   return {
     shouldReturn: true,
@@ -348,13 +129,16 @@ function createBackgroundResult(
   };
 }
 
+/**
+ * Create a promise that resolves when background transition occurs or command completes.
+ */
 function createBackgroundCheckPromise(
   movedToBackgroundRef: { value: boolean },
   backgroundTaskIdRef: { value: string | undefined },
   outputBufferRef: { value: string },
   command: string,
   resultPromise: Promise<any>,
-) {
+): Promise<{ shouldReturn: boolean; result: any }> {
   return new Promise<{ shouldReturn: boolean; result: any }>((resolve) => {
     let checkInterval: NodeJS.Timeout | null = null;
 
@@ -385,106 +169,9 @@ function createBackgroundCheckPromise(
   });
 }
 
-function handleBackgroundTransition(
-  command: string,
-  pid: number | null | undefined,
-  tempFilePath: string,
-  isWindows: boolean,
-  backgroundTaskManager: BackgroundTaskManager,
-  resultPromise: Promise<any>,
-): string {
-  const backgroundPIDs = extractBackgroundPIDs(tempFilePath, pid, isWindows);
-  const pgid =
-    backgroundPIDs.length > 0 ? backgroundPIDs[0] : (pid ?? undefined);
-  const backgroundTaskId = backgroundTaskManager.createTask({
-    command,
-    pid: pid ?? 0,
-    pgid,
-  });
-
-  resultPromise.then((result) => {
-    const status = result.cancelled
-      ? 'killed'
-      : result.exitCode === 0
-        ? 'completed'
-        : 'failed';
-    backgroundTaskManager.updateTaskStatus(
-      backgroundTaskId,
-      status,
-      result.exitCode,
-    );
-  });
-
-  return backgroundTaskId;
-}
-
-function formatExecutionResult(
-  result: any,
-  command: string,
-  wrappedCommand: string,
-  cwd: string,
-  backgroundPIDs: number[],
-): { llmContent: string; returnDisplay: string } {
-  let llmContent = '';
-  if (result.cancelled) {
-    llmContent = 'Command execution timed out and was cancelled.';
-    if (result.output.trim()) {
-      llmContent += ` Below is the output (on stdout and stderr) before it was cancelled:\n${result.output}`;
-    } else {
-      llmContent += ' There was no output before it was cancelled.';
-    }
-  } else {
-    const finalError = result.error
-      ? result.error.message.replace(wrappedCommand, command)
-      : '(none)';
-    llmContent = [
-      `Command: ${command}`,
-      `Directory: ${cwd || '(root)'}`,
-      `Stdout: ${result.stdout || '(empty)'}`,
-      `Stderr: ${result.stderr || '(empty)'}`,
-      `Error: ${finalError}`,
-      `Exit Code: ${result.exitCode ?? '(none)'}`,
-      `Signal: ${result.signal ?? '(none)'}`,
-      `Background PIDs: ${
-        backgroundPIDs.length ? backgroundPIDs.join(', ') : '(none)'
-      }`,
-      `Process Group PGID: ${result.pid ?? '(none)'}`,
-    ].join('\n');
-  }
-
-  debug('llmContent', llmContent);
-
-  let message = '';
-  if (result.output?.trim()) {
-    debug('result.output:', result.output);
-    const safeOutput =
-      typeof result.output === 'string' ? result.output : String(result.output);
-    message = truncateOutput(safeOutput);
-
-    if (message !== result.output) {
-      debug(
-        'output was truncated from',
-        result.output.length,
-        'to',
-        message.length,
-      );
-    }
-  } else {
-    if (result.cancelled) {
-      message = 'Command execution timed out and was cancelled.';
-    } else if (result.signal) {
-      message = `Command execution was terminated by signal ${result.signal}.`;
-    } else if (result.error) {
-      message = `Command failed: ${getErrorMessage(result.error)}`;
-    } else if (result.exitCode !== null && result.exitCode !== 0) {
-      message = `Command exited with code: ${result.exitCode}`;
-    } else {
-      message = 'Command executed successfully.';
-    }
-  }
-
-  return { llmContent, returnDisplay: message };
-}
+// ============================================================================
+// Command Execution
+// ============================================================================
 
 async function executeCommand(
   command: string,
@@ -497,6 +184,7 @@ async function executeCommand(
 ) {
   const actualTimeout = Math.min(timeout, MAX_TIMEOUT);
 
+  // Validate command
   const validationError = validateCommand(command);
   if (validationError) {
     return {
@@ -505,123 +193,20 @@ async function executeCommand(
     };
   }
 
-  const startTime = Date.now();
-  let hasOutput = false;
-  const outputBufferRef = { value: '' };
-  const movedToBackgroundRef = { value: false };
-  const backgroundTaskIdRef: { value: string | undefined } = {
-    value: undefined,
-  };
-  const isCommandCompletedRef = { value: false };
-  let backgroundCheckInterval: ReturnType<typeof setInterval> | null = null;
-
-  let backgroundPromptEmitted = false;
-
-  // Helper function to clear background prompt when command completes
-  const clearBackgroundPromptIfNeeded = () => {
-    if (backgroundPromptEmitted && messageBus && !movedToBackgroundRef.value) {
-      messageBus.emitEvent(BASH_EVENTS.BACKGROUND_MOVED, {});
-    }
-  };
-
-  const triggerBackgroundTransition = () => {
-    if (runInBackground === true) {
-      if (!movedToBackgroundRef.value) {
-        movedToBackgroundRef.value = true;
-        const actualTaskId = handleBackgroundTransition(
-          command,
-          pid,
-          tempFilePath,
-          isWindows,
-          backgroundTaskManager,
-          resultPromise,
-        );
-        backgroundTaskIdRef.value = actualTaskId;
-      }
-    } else if (messageBus) {
-      const tempTaskId = `temp_${crypto.randomBytes(6).toString('hex')}`;
-      pendingBackgroundMoves.set(tempTaskId, {
-        moveToBackground: () => {
-          movedToBackgroundRef.value = true;
-          const actualTaskId = handleBackgroundTransition(
-            command,
-            pid,
-            tempFilePath,
-            isWindows,
-            backgroundTaskManager,
-            resultPromise,
-          );
-          backgroundTaskIdRef.value = actualTaskId;
-        },
-      });
-
-      const promptEvent: BashPromptBackgroundEvent = {
-        taskId: tempTaskId,
-        command,
-        currentOutput: outputBufferRef.value,
-      };
-
-      messageBus.emitEvent(BASH_EVENTS.PROMPT_BACKGROUND, promptEvent);
-    }
-  };
-
-  const shouldStopCheck = () =>
-    movedToBackgroundRef.value || isCommandCompletedRef.value;
-
-  const shouldTransitionToBackground = () => {
-    const elapsed = Date.now() - startTime;
-    return (
-      shouldRunInBackground(
-        command,
-        elapsed,
-        hasOutput,
-        isCommandCompletedRef.value,
-        runInBackground,
-      ) && !backgroundPromptEmitted
-    );
-  };
-
-  const clearCheckInterval = () => {
-    if (backgroundCheckInterval) {
-      clearInterval(backgroundCheckInterval);
-      backgroundCheckInterval = null;
-    }
-  };
-
-  // 定时检查函数
-  const startBackgroundCheck = () => {
-    if (backgroundCheckInterval) return; // Avoid duplicate startup
-
-    backgroundCheckInterval = setInterval(() => {
-      if (shouldStopCheck()) {
-        clearCheckInterval();
-        return;
-      }
-
-      if (shouldTransitionToBackground()) {
-        backgroundPromptEmitted = true;
-        triggerBackgroundTransition();
-        clearCheckInterval();
-      }
-    }, BACKGROUND_CHECK_INTERVAL);
-  };
-
+  // Setup execution environment
   const isWindows = os.platform() === 'win32';
-  const tempFileName = `shell_pgrep_${crypto
-    .randomBytes(6)
-    .toString('hex')}.tmp`;
+  const tempFileName = `shell_pgrep_${crypto.randomBytes(6).toString('hex')}.tmp`;
   const tempFilePath = path.join(os.tmpdir(), tempFileName);
-
   const shell = process.env.SHELL || '/bin/bash';
   const isFish = !isWindows && shell.endsWith('/fish');
 
+  // Generate wrapped command for shell execution
   const wrappedCommand = isWindows
     ? command
     : (() => {
         let cmd = command.trim();
         if (!cmd.endsWith('&')) cmd += ';';
         if (isFish) {
-          // Fish shell syntax: use 'set' for variable assignment and $status for exit code
           return `begin; ${cmd} end; set __code $status; pgrep -g 0 >${tempFilePath} 2>&1; exit $__code`;
         }
         return `{ ${cmd} }; __code=$?; pgrep -g 0 >${tempFilePath} 2>&1; exit $__code;`;
@@ -629,6 +214,7 @@ async function executeCommand(
 
   debug('wrappedCommand', wrappedCommand);
 
+  // Cleanup function
   const cleanupTempFile = () => {
     try {
       if (!isWindows && fs.existsSync(tempFilePath)) {
@@ -639,6 +225,17 @@ async function executeCommand(
     }
   };
 
+  // State management
+  const startTime = Date.now();
+  let hasOutput = false;
+  const outputBufferRef = { value: '' };
+  const movedToBackgroundRef = { value: false };
+  const backgroundTaskIdRef: { value: string | undefined } = { value: undefined };
+  const isCommandCompletedRef = { value: false };
+  let backgroundCheckInterval: ReturnType<typeof setInterval> | null = null;
+  let backgroundPromptEmitted = false;
+
+  // Execute command
   const { result: resultPromise, pid } = shellExecute(
     wrappedCommand,
     cwd,
@@ -659,7 +256,116 @@ async function executeCommand(
         outputBufferRef.value += event.chunk;
 
         // Start background check if not already started
-        startBackgroundCheck();
+        if (!backgroundCheckInterval) {
+          backgroundCheckInterval = setInterval(() => {
+            if (movedToBackgroundRef.value || isCommandCompletedRef.value) {
+              if (backgroundCheckInterval) clearInterval(backgroundCheckInterval);
+              backgroundCheckInterval = null;
+              return;
+            }
+
+            const elapsed = Date.now() - startTime;
+            if (
+              shouldRunInBackground(
+                command,
+                elapsed,
+                hasOutput,
+                isCommandCompletedRef.value,
+                runInBackground,
+              ) &&
+              !backgroundPromptEmitted
+            ) {
+              backgroundPromptEmitted = true;
+
+              // Trigger background transition
+              if (runInBackground === true) {
+                if (!movedToBackgroundRef.value) {
+                  movedToBackgroundRef.value = true;
+                  const backgroundPIDs = extractBackgroundPIDs(
+                    tempFilePath,
+                    pid,
+                    isWindows,
+                  );
+                  const pgid =
+                    backgroundPIDs.length > 0
+                      ? backgroundPIDs[0]
+                      : (pid ?? undefined);
+                  const backgroundTaskId =
+                    backgroundTaskManager.createTask({
+                      command,
+                      pid: pid ?? 0,
+                      pgid,
+                    });
+
+                  resultPromise.then((result) => {
+                    const status = result.cancelled
+                      ? 'killed'
+                      : result.exitCode === 0
+                        ? 'completed'
+                        : 'failed';
+                    backgroundTaskManager.updateTaskStatus(
+                      backgroundTaskId,
+                      status,
+                      result.exitCode,
+                    );
+                  });
+
+                  backgroundTaskIdRef.value = backgroundTaskId;
+                }
+              } else if (messageBus) {
+                const tempTaskId = `temp_${crypto
+                  .randomBytes(6)
+                  .toString('hex')}`;
+                pendingBackgroundMoves.set(tempTaskId, {
+                  moveToBackground: () => {
+                    movedToBackgroundRef.value = true;
+                    const backgroundPIDs = extractBackgroundPIDs(
+                      tempFilePath,
+                      pid,
+                      isWindows,
+                    );
+                    const pgid =
+                      backgroundPIDs.length > 0
+                        ? backgroundPIDs[0]
+                        : (pid ?? undefined);
+                    const backgroundTaskId =
+                      backgroundTaskManager.createTask({
+                        command,
+                        pid: pid ?? 0,
+                        pgid,
+                      });
+
+                    resultPromise.then((result) => {
+                      const status = result.cancelled
+                        ? 'killed'
+                        : result.exitCode === 0
+                          ? 'completed'
+                          : 'failed';
+                      backgroundTaskManager.updateTaskStatus(
+                        backgroundTaskId,
+                        status,
+                        result.exitCode,
+                      );
+                    });
+
+                    backgroundTaskIdRef.value = backgroundTaskId;
+                  },
+                });
+
+                const promptEvent: BashPromptBackgroundEvent = {
+                  taskId: tempTaskId,
+                  command,
+                  currentOutput: outputBufferRef.value,
+                };
+
+                messageBus.emitEvent(BASH_EVENTS.PROMPT_BACKGROUND, promptEvent);
+              }
+
+              if (backgroundCheckInterval) clearInterval(backgroundCheckInterval);
+              backgroundCheckInterval = null;
+            }
+          }, BACKGROUND_CHECK_INTERVAL);
+        }
       }
     },
   );
@@ -667,9 +373,20 @@ async function executeCommand(
   // Monitor command completion
   resultPromise.finally(() => {
     isCommandCompletedRef.value = true;
-    clearCheckInterval();
+    if (backgroundCheckInterval) {
+      clearInterval(backgroundCheckInterval);
+      backgroundCheckInterval = null;
+    }
   });
 
+  // Clear background prompt if needed
+  const clearBackgroundPromptIfNeeded = () => {
+    if (backgroundPromptEmitted && messageBus && !movedToBackgroundRef.value) {
+      messageBus.emitEvent(BASH_EVENTS.BACKGROUND_MOVED, {});
+    }
+  };
+
+  // Wait for background transition or command completion
   try {
     const backgroundCheckResult = await Promise.race([
       createBackgroundCheckPromise(
@@ -697,31 +414,23 @@ async function executeCommand(
   cleanupTempFile();
   clearBackgroundPromptIfNeeded();
 
-  const backgroundPIDs = extractBackgroundPIDs(
-    tempFilePath,
-    result.pid,
-    isWindows,
-  );
-  if (!isWindows && fs.existsSync(tempFilePath)) {
-    const pgrepLines = fs
-      .readFileSync(tempFilePath, 'utf8')
-      .split('\n')
-      .filter(Boolean);
-    for (const line of pgrepLines) {
-      if (!/^\d+$/.test(line)) {
-        console.error(`pgrep: ${line}`);
-      }
-    }
-  }
+  const backgroundPIDs = extractBackgroundPIDs(tempFilePath, result.pid, isWindows);
 
-  return formatExecutionResult(
+  const formatted = formatExecutionResult(
     result,
     command,
     wrappedCommand,
     cwd,
     backgroundPIDs,
   );
+  debug('llmContent', formatted.llmContent);
+
+  return formatted;
 }
+
+// ============================================================================
+// Tool Creation Functions
+// ============================================================================
 
 export function createBashOutputTool(opts: {
   backgroundTaskManager: BackgroundTaskManager;
@@ -866,6 +575,7 @@ export function createBashTool(opts: {
       },
     );
   }
+
   return createTool({
     name: TOOL_NAMES.BASH,
     description:
@@ -887,7 +597,7 @@ Before using this tool, please follow these steps:
 
 Notes:
 - The command argument is required.
-- You can specify an optional timeout in milliseconds (up to ${MAX_TIMEOUT}ms / 10 minutes). If not specified, commands will timeout after 30 minutes.
+- You can specify an optional timeout in milliseconds (up to ${MAX_TIMEOUT}ms / 10 minutes). If not specified, commands will timeout after 2 minutes.
 - VERY IMPORTANT: You MUST avoid using search commands like \`find\` and \`grep\`. Instead use grep and glob tool to search. You MUST avoid read tools like \`cat\`, \`head\`, \`tail\`, and \`ls\`, and use \`read\` and \`ls\` tool to read files.
 - If you _still_ need to run \`grep\`, STOP. ALWAYS USE ripgrep at \`rg\` first, which all users have pre-installed.
 - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings).
@@ -985,10 +695,7 @@ Output: Create directory 'foo'
         }
         // Check if command is banned (these should never be approved)
         const commandRoot = getCommandRoot(command);
-        if (
-          commandRoot &&
-          BANNED_COMMANDS.includes(commandRoot.toLowerCase())
-        ) {
+        if (commandRoot && isBannedCommand(commandRoot)) {
           return true; // This will be denied by approval system
         }
         // For other commands, defer to approval mode settings
