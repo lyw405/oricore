@@ -42,6 +42,20 @@ export { randomUUID } from './utils/randomUUID';
 // Paths
 export { Paths, getGlobalDataPath } from './core/paths';
 
+// Skill system
+export { SkillManager } from './skill/skill';
+export type {
+  SkillManagerOpts,
+  SkillMetadata,
+  SkillError,
+  SkillLoadOutcome,
+  AddSkillOptions,
+  SkillPreview,
+  PreviewSkillsResult,
+  AddSkillResult,
+} from './skill/skill';
+export { SkillSource } from './skill/skill';
+
 // Loop result type (for sendMessage return value)
 export type { LoopResult } from './core/loop';
 
