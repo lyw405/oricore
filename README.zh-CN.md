@@ -137,6 +137,16 @@ await engine.shutdown();
 
 ---
 
+## 致谢
+
+本项目参考了以下优秀项目的核心架构：
+
+**[neovate-code](https://github.com/neovateai/neovate-code)** - 核心 AI 引擎架构
+
+OriCore 在此基础上进行了重构和精简，移除了 UI、CLI 等外围功能，专注于提供一个功能强大且独立的 AI 引擎库，可以轻松集成到任何项目中。
+
+---
+
 ## 许可证
 
 MIT © [lyw405](https://github.com/lyw405)

@@ -137,6 +137,16 @@ await engine.shutdown();
 
 ---
 
+## Acknowledgments
+
+This project references the core architecture of the following excellent project:
+
+**[neovate-code](https://github.com/neovateai/neovate-code)** - Core AI engine architecture
+
+OriCore has been refactored and streamlined on this foundation, removing UI, CLI, and other peripheral features to focus on providing a powerful and standalone AI engine library that can be easily integrated into any project.
+
+---
+
 ## License
 
 MIT © [lyw405](https://github.com/lyw405)
