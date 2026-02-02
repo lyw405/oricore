@@ -326,7 +326,7 @@ export class Engine {
 
     // Run the conversation loop
     // The history's onMessage callback will handle persistence
-    return runLoop({
+    const result = await runLoop({
       input: options.message,
       history: sessionHistory,
       model: resolvedModel.model,
@@ -344,6 +344,13 @@ export class Engine {
       onTurn: options.onTurn,
       onMessage: sessionHistory?.onMessage || onMessageCallback,
     });
+
+    // Record the model usage if successful
+    if (result.success && modelId) {
+      context.globalData.addRecentModel(modelId);
+    }
+
+    return result;
   }
 
   /**
@@ -493,7 +500,7 @@ export class Engine {
     });
 
     // Run the conversation loop with custom system prompt
-    return runLoop({
+    const result = await runLoop({
       input: message,
       model: resolvedModel.model,
       tools: new Tools(toolsList),
@@ -509,6 +516,13 @@ export class Engine {
       onToolApprove: options.onToolApprove,
       onTurn: options.onTurn,
     });
+
+    // Record the model usage if successful
+    if (result.success && modelId) {
+      context.globalData.addRecentModel(modelId);
+    }
+
+    return result;
   }
 
   /**

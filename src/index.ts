@@ -42,6 +42,9 @@ export { randomUUID } from './utils/randomUUID';
 // Paths
 export { Paths, getGlobalDataPath } from './core/paths';
 
+// GlobalData
+export { GlobalData } from './core/globalData';
+
 // Skill system
 export { SkillManager } from './skill/skill';
 export type {

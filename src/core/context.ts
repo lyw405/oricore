@@ -5,6 +5,7 @@ import resolve from 'resolve';
 import { AgentManager } from '../agent/agent/agentManager';
 import { BackgroundTaskManager } from './backgroundTaskManager';
 import { type Config, ConfigManager } from '../core/config';
+import { GlobalData } from './globalData';
 import { MCPManager } from '../mcp/mcp';
 import type { MessageBus } from '../communication/messageBus';
 import { Paths } from './paths';
@@ -34,6 +35,7 @@ type ContextOpts = {
   agentManager?: AgentManager;
   plugins: (string | Plugin)[];
   fetch?: typeof globalThis.fetch;
+  globalData: GlobalData;
 };
 
 export type ContextCreateOpts = {
@@ -63,6 +65,7 @@ export class Context {
   agentManager?: AgentManager;
   plugins: (string | Plugin)[];
   fetch?: typeof globalThis.fetch;
+  globalData: GlobalData;
   constructor(opts: ContextOpts) {
     this.cwd = opts.cwd;
     this.productName = opts.productName;
@@ -79,6 +82,7 @@ export class Context {
     this.agentManager = opts.agentManager;
     this.plugins = opts.plugins;
     this.fetch = opts.fetch;
+    this.globalData = opts.globalData;
   }
 
   async apply(applyOpts: Omit<PluginApplyOpts, 'pluginContext'>) {
@@ -149,6 +153,7 @@ export class Context {
     };
     const mcpManager = MCPManager.create(mcpServers);
     const backgroundTaskManager = new BackgroundTaskManager();
+    const globalData = new GlobalData({ globalDataPath: paths.getGlobalDataPath() });
 
     const context = new Context({
       cwd,
@@ -164,6 +169,7 @@ export class Context {
       messageBus: opts.messageBus,
       plugins: pluginsConfigs,
       fetch: opts.fetch,
+      globalData,
     });
 
     // Create and attach SkillManager

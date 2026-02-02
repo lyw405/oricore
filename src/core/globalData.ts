@@ -9,6 +9,7 @@ interface GlobalDataSchema {
       lastAccessed?: number;
     }
   >;
+  recentModels?: string[];
 }
 
 export class GlobalData {
@@ -72,6 +73,20 @@ export class GlobalData {
     }
 
     data.projects[cwd].lastAccessed = Date.now();
+    this.writeData(data);
+  }
+
+  getRecentModels(): string[] {
+    const data = this.readData();
+    return data.recentModels || [];
+  }
+
+  addRecentModel(model: string): void {
+    const data = this.readData();
+    const recentModels = data.recentModels || [];
+    const filtered = recentModels.filter((m) => m !== model);
+    filtered.unshift(model);
+    data.recentModels = filtered.slice(0, 5);
     this.writeData(data);
   }
 }
