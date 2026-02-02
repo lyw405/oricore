@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Model Configuration**: Add `variants` field to Model interface for provider-specific reasoning configs
+  - Models now include pre-computed reasoning variants (low/medium/high/max)
+  - Each provider (Anthropic, OpenAI, Google, etc.) gets tailored reasoning configurations
+  - Variants computed at model initialization instead of runtime
+
+- **Provider Headers**: Add `headers` field to Provider interface
+  - Providers can now specify custom request headers
+  - OriCore branding headers added to major providers (anthropic, openai, deepseek, cerebras)
+
+### Changed
+
+- **Thinking Config Architecture**: Restructure reasoning configuration system
+  - Move thinking config generation from runtime to model definition phase
+  - Add `transformVariants()` function in `resolution.ts` to generate provider-specific configs
+  - Add `normalizeModel()` function to auto-populate model definitions with variants
+  - Remove `src/core/thinking-config.ts` (logic migrated to `resolution.ts`)
+
+- **Prompt Cache**: Extend cache control support to multiple providers
+  - Now supports: anthropic, openrouter, bedrock, openaiCompatible
+  - Cache strategy: first 2 system messages + last 2 non-system messages
+
+- **Proxy Config**: Enhanced header merging
+  - Headers now merge from three levels with priority: provider.headers → provider.options.headers → config.headers
+
+### Internal
+
+- Remove `src/core/thinking-config.ts` - logic migrated to `src/core/model/resolution.ts`
+- Add `ReasoningEffort` and `ThinkingConfig` types to `src/core/loop.ts`
+
 ## [1.3.6] - 2025-01-31
 
 ### ⚠️ BREAKING CHANGES

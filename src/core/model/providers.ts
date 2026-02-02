@@ -306,6 +306,10 @@ export const providers: ProvidersMap = {
       'claude-opus-4-5': models['claude-opus-4-5'],
     },
     apiFormat: 'anthropic',
+    headers: {
+      'X-Title': 'OriCore',
+      'HTTP-Referer': 'https://github.com/lyw405/oricore',
+    },
     createModel: defaultAnthropicModelCreator,
   },
   aihubmix: {
@@ -668,6 +672,10 @@ export const providers: ProvidersMap = {
       'deepseek/deepseek-chat': models['deepseek-v3-2-exp'],
       'deepseek/deepseek-reasoner': models['deepseek-r1-0528'],
     },
+    headers: {
+      'X-Title': 'OriCore',
+      'HTTP-Referer': 'https://github.com/lyw405/oricore',
+    },
   },
   minimax: {
     id: 'minimax',
@@ -736,15 +744,15 @@ export const providers: ProvidersMap = {
         limit: { context: 65000, output: 32000 },
       },
     },
+    headers: {
+      'X-Cerebras-3rd-Party-Integration': 'OriCore',
+    },
     createModel(name, provider) {
       const apiKey = getProviderApiKey(provider);
       return createCerebras(
         withProxyConfig(
           {
             apiKey,
-            headers: {
-              'X-Cerebras-3rd-Party-Integration': 'cline',
-            },
           },
           provider,
         ),

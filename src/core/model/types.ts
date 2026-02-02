@@ -32,6 +32,8 @@ export interface Model {
   open_weights: boolean;
   cost: ModelCost;
   limit: ModelLimit;
+  apiFormat?: 'anthropic' | 'openai' | 'responses';
+  variants?: Record<string, any>;
 }
 
 export interface Provider {
@@ -51,6 +53,7 @@ export interface Provider {
     },
   ) => Promise<LanguageModelV3> | LanguageModelV3;
   apiFormat?: 'anthropic' | 'openai' | 'responses';
+  headers?: Record<string, string>;
   options?: {
     baseURL?: string;
     apiKey?: string;

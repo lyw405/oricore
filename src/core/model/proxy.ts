@@ -4,6 +4,7 @@ import { createProxyFetch } from '../../utils/proxy';
 /**
  * Inject proxy support into AI SDK configuration.
  * Priority: Provider-level proxy > Global proxy
+ * Also merges provider-level headers with config headers
  *
  * @param config - SDK configuration object
  * @param provider - Provider configuration
@@ -14,16 +15,28 @@ function withProxyConfig<T extends Record<string, any>>(
   provider: Provider,
 ): T {
   const proxyUrl = provider.options?.httpProxy;
+  const providerHeaders = provider.headers;
+  const optionsHeaders = provider.options?.headers;
 
-  if (proxyUrl) {
-    const proxyFetch = createProxyFetch(proxyUrl);
-    return {
-      ...config,
-      fetch: proxyFetch,
+  const result: any = {
+    ...config,
+  };
+
+  // Merge headers: provider.headers + provider.options.headers + config.headers
+  if (providerHeaders || optionsHeaders || config.headers) {
+    result.headers = {
+      ...(providerHeaders || {}),
+      ...(optionsHeaders || {}),
+      ...(config.headers || {}),
     };
   }
 
-  return config;
+  if (proxyUrl) {
+    const proxyFetch = createProxyFetch(proxyUrl);
+    result.fetch = proxyFetch;
+  }
+
+  return result;
 }
 
 export { withProxyConfig };
