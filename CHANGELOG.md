@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0
 
 ### Added
 
+## [1.3.7] - 2026-02-02
+
+### Added
+
 - **Recent Models Tracking**: Track recently used models (max 5) in GlobalData
   - Add `getRecentModels()` and `addRecentModel()` methods to `GlobalData` class
   - Automatically record model usage when `sendMessage()` or `sendMessageWithMode()` succeeds
