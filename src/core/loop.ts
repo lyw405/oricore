@@ -458,14 +458,23 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
           continue;
         }
 
+        let parsedResponseBody: {
+          error?: { message?: string; metadata?: Record<string, unknown> };
+        } | null = null;
+        if (typeof error.responseBody === 'string') {
+          try {
+            parsedResponseBody = JSON.parse(error.responseBody);
+          } catch {}
+        }
         return {
           success: false,
           error: {
             type: 'api_error',
             message:
-              error instanceof Error
+              parsedResponseBody?.error?.message ??
+              (error instanceof Error
                 ? error.message
-                : 'Unknown streaming error',
+                : 'Unknown streaming error'),
             details: {
               code: error.data?.error?.code,
               status: error.data?.error?.status,
@@ -473,6 +482,9 @@ export async function runLoop(opts: RunLoopOpts): Promise<LoopResult> {
               error,
               stack: error.stack,
               retriesAttempted: retryCount,
+              ...(parsedResponseBody?.error?.metadata && {
+                metadata: parsedResponseBody.error.metadata,
+              }),
             },
           },
         };

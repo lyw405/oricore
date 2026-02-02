@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0
 
 ### Added
 
+- **Recent Models Tracking**: Track recently used models (max 5) in GlobalData
+  - Add `getRecentModels()` and `addRecentModel()` methods to `GlobalData` class
+  - Automatically record model usage when `sendMessage()` or `sendMessageWithMode()` succeeds
+  - Export `GlobalData` from main index
+  - Follows LRU semantics: most recent first, duplicates moved to front, capped at 5 entries
+
 - **Model Configuration**: Add `variants` field to Model interface for provider-specific reasoning configs
   - Models now include pre-computed reasoning variants (low/medium/high/max)
   - Each provider (Anthropic, OpenAI, Google, etc.) gets tailored reasoning configurations
@@ -17,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0
 - **Provider Headers**: Add `headers` field to Provider interface
   - Providers can now specify custom request headers
   - OriCore branding headers added to major providers (anthropic, openai, deepseek, cerebras)
+
+### Fixed
+
+- **Build**: Fixed TypeScript error in `loop.ts:485`
+  - Changed `metadata` type from `unknown` to `Record<string, unknown>`
+  - Resolves spread operator error with object types
 
 ### Changed
 
