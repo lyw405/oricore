@@ -29,7 +29,14 @@ OriCore 是一个功能完整的 **AI 引擎库**，让你可以轻松地在任�
 import { createEngine } from 'oricore';
 
 const engine = createEngine({ productName: 'MyApp', version: '1.0.0' });
-await engine.initialize({ model: 'deepseek/deepseek-chat', provider: { deepseek: { apiKey: 'your-key' } } });
+await engine.initialize({
+  model: 'deepseek/deepseek-chat',
+  provider: {
+    deepseek: {
+      options: { apiKey: 'your-key' }
+    }
+  }
+});
 
 const result = await engine.sendMessage({ message: '帮我分析这个项目的结构', write: true });
 console.log(result.data.text);
@@ -49,7 +56,11 @@ import { createEngine } from 'oricore';
 const engine = createEngine({ productName: 'MyAIAssistant', version: '1.0.0' });
 await engine.initialize({
   model: 'deepseek/deepseek-chat',
-  provider: { deepseek: { apiKey: 'your-api-key' } },
+  provider: {
+    deepseek: {
+      options: { apiKey: 'your-api-key' }
+    }
+  },
 });
 
 const result = await engine.sendMessage({

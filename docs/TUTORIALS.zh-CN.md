@@ -38,7 +38,9 @@ async function main() {
     model: 'deepseek/deepseek-chat',
     provider: {
       deepseek: {
-        apiKey: process.env.DEEPSEEK_API_KEY,
+        options: {
+          apiKey: process.env.DEEPSEEK_API_KEY,
+        },
       },
     },
   });
@@ -115,7 +117,9 @@ async function reviewCode(filePath: string) {
     model: 'anthropic/claude-sonnet-4-20250514',
     provider: {
       anthropic: {
-        apiKey: process.env.ANTHROPIC_API_KEY,
+        options: {
+          apiKey: process.env.ANTHROPIC_API_KEY,
+        },
       },
     },
   });
@@ -187,7 +191,9 @@ async function refactorCode(pattern: string) {
     model: 'openai/gpt-4o',
     provider: {
       openai: {
-        apiKey: process.env.OPENAI_API_KEY,
+        options: {
+          apiKey: process.env.OPENAI_API_KEY,
+        },
       },
     },
     approvalMode: 'autoEdit',  // 自动批准写操作
@@ -250,7 +256,9 @@ async function generateDocs() {
     model: 'deepseek/deepseek-chat',
     provider: {
       deepseek: {
-        apiKey: process.env.DEEPSEEK_API_KEY,
+        options: {
+          apiKey: process.env.DEEPSEEK_API_KEY,
+        },
       },
     },
   });
@@ -310,7 +318,9 @@ async function multiSessionDemo() {
     model: 'deepseek/deepseek-chat',
     provider: {
       deepseek: {
-        apiKey: process.env.DEEPSEEK_API_KEY,
+        options: {
+          apiKey: process.env.DEEPSEEK_API_KEY,
+        },
       },
     },
   });

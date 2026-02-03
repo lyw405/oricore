@@ -96,9 +96,12 @@ async initialize(config: EngineConfig = {}): Promise<void>
 ```typescript
 await engine.initialize({
   model: 'deepseek/deepseek-chat',
-  provider: {
+  provider:
+  {
     deepseek: {
-      apiKey: 'your-api-key',
+      options: {
+        apiKey: 'your-api-key',
+      },
       baseURL: 'https://api.deepseek.com',
     },
   },
@@ -454,12 +457,13 @@ await engine.initialize({
   },
   provider: {
     deepseek: {
-      apiKey: 'your-api-key',
+      options: {
+        apiKey: 'your-api-key',
+      },
       baseURL: 'https://api.deepseek.com',
     },
     anthropic: {
       apiKey: 'your-anthropic-key',
-      baseURL: 'https://api.anthropic.com',
     },
   },
 });

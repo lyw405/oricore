@@ -43,7 +43,13 @@ OriCore natively supports MCP, enabling:
 ```typescript
 await engine.initialize({
   model: 'deepseek/deepseek-chat',
-  provider: { deepseek: { apiKey: 'your-key' } },
+  provider: {
+    deepseek: {
+      options: {
+        apiKey: 'your-key',
+      },
+    },
+  },
 
   mcpServers: {
     filesystem: {
@@ -286,7 +292,13 @@ async function main() {
 
   await engine.initialize({
     model: 'deepseek/deepseek-chat',
-    provider: { deepseek: { apiKey: 'your-key' } },
+    provider: {
+      deepseek: {
+        options: {
+          apiKey: 'your-key',
+        },
+      },
+    },
 
     // Configure multiple MCP servers
     mcpServers: {

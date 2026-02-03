@@ -260,7 +260,13 @@ async function main() {
 
   await engine.initialize({
     model: 'deepseek/deepseek-chat',
-    provider: { deepseek: { apiKey: 'your-key' } },
+    provider: {
+      deepseek: {
+        options: {
+          apiKey: 'your-key',
+        },
+      },
+    },
   });
 
   const bus = engine.getMessageBus();

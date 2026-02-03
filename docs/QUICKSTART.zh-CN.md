@@ -33,8 +33,10 @@ async function main() {
     model: 'deepseek/deepseek-chat',
     provider: {
       deepseek: {
-        apiKey: process.env.DEEPSEEK_API_KEY,  // 从环境变量读取
-        baseURL: 'https://api.deepseek.com',
+        options: {
+          apiKey: process.env.DEEPSEEK_API_KEY,  // 从环境变量读取
+          baseURL: 'https://api.deepseek.com',
+        },
       },
     },
   });
@@ -147,7 +149,9 @@ await engine.initialize({
   approvalMode: 'autoEdit',  // 允许读写，但命令需要确认
 
   provider: {
-    deepseek: { apiKey: process.env.DEEPSEEK_API_KEY },
+    deepseek: {
+      options: { apiKey: process.env.DEEPSEEK_API_KEY }
+    },
   },
 });
 ```
@@ -188,8 +192,10 @@ await engine.initialize({
   model: 'openai/gpt-4o',
   provider: {
     openai: {
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: 'https://api.openai.com/v1',
+      options: {
+        apiKey: process.env.OPENAI_API_KEY,
+        baseURL: 'https://api.openai.com/v1',
+      },
     },
   },
 });
@@ -202,8 +208,10 @@ await engine.initialize({
   model: 'anthropic/claude-sonnet-4-20250514',
   provider: {
     anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      baseURL: 'https://api.anthropic.com',
+      options: {
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        baseURL: 'https://api.anthropic.com',
+      },
     },
   },
 });
@@ -216,8 +224,10 @@ await engine.initialize({
   model: 'zhipuai/glm-4.7',
   provider: {
     zhipuai: {
-      apiKey: process.env.ZHIPUAI_API_KEY,
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      options: {
+        apiKey: process.env.ZHIPUAI_API_KEY,
+        baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      },
     },
   },
 });

@@ -339,7 +339,13 @@ const engine = createEngine({
 
 await engine.initialize({
   model: 'deepseek/deepseek-chat',
-  provider: { deepseek: { apiKey: 'your-key' } },
+  provider: {
+    deepseek: {
+      options: {
+        apiKey: 'your-key',
+      },
+    },
+  },
 });
 
 // 使用 Skill

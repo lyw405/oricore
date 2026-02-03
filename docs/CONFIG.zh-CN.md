@@ -88,8 +88,10 @@ await engine.initialize({
   // AI 提供商
   provider: {
     deepseek: {
-      apiKey: 'your-api-key',
-      baseURL: 'https://api.deepseek.com',
+      options: {
+        apiKey: 'your-api-key',
+        baseURL: 'https://api.deepseek.com',
+      },
     },
   },
 });
@@ -123,8 +125,12 @@ OriCore 支持 40+ AI 提供商，以下是最常用的：
 
 ```typescript
 interface ProviderConfig {
-  apiKey: string;              // API 密钥
-  baseURL?: string;            // API 基础 URL
+  options?: {
+    apiKey?: string;              // API 密钥
+    baseURL?: string;            // API 基础 URL
+    headers?: Record<string, string>;
+    httpProxy?: string;
+  };
 }
 ```
 
@@ -135,8 +141,10 @@ await engine.initialize({
   model: 'deepseek/deepseek-chat',
   provider: {
     deepseek: {
-      apiKey: process.env.DEEPSEEK_API_KEY,
-      baseURL: 'https://api.deepseek.com',
+      options: {
+        apiKey: process.env.DEEPSEEK_API_KEY,
+        baseURL: 'https://api.deepseek.com',
+      },
     },
   },
 });
@@ -153,8 +161,10 @@ await engine.initialize({
   model: 'openai/gpt-4o',
   provider: {
     openai: {
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: 'https://api.openai.com/v1',
+      options: {
+        apiKey: process.env.OPENAI_API_KEY,
+        baseURL: 'https://api.openai.com/v1',
+      },
     },
   },
 });
@@ -173,8 +183,10 @@ await engine.initialize({
   model: 'anthropic/claude-sonnet-4',
   provider: {
     anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      baseURL: 'https://api.anthropic.com',
+      options: {
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        baseURL: 'https://api.anthropic.com',
+      },
     },
   },
 });
@@ -192,8 +204,10 @@ await engine.initialize({
   model: 'google/gemini-2.5-flash',
   provider: {
     google: {
-      apiKey: process.env.GOOGLE_API_KEY,
-      baseURL: 'https://generativelanguage.googleapis.com',
+      options: {
+        apiKey: process.env.GOOGLE_API_KEY,
+        baseURL: 'https://generativelanguage.googleapis.com',
+      },
     },
   },
 });
@@ -211,8 +225,10 @@ await engine.initialize({
   model: 'zhipuai/glm-4.7',
   provider: {
     zhipuai: {
-      apiKey: process.env.ZHIPUAI_API_KEY,
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      options: {
+        apiKey: process.env.ZHIPUAI_API_KEY,
+        baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      },
     },
   },
 });
@@ -235,10 +251,14 @@ await engine.initialize({
 
   provider: {
     deepseek: {
-      apiKey: process.env.DEEPSEEK_API_KEY,
+      options: {
+        apiKey: process.env.DEEPSEEK_API_KEY,
+      },
     },
     anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
+      options: {
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      },
     },
   },
 });
