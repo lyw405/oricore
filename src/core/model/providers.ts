@@ -14,11 +14,6 @@ import {
   extractReasoningMiddleware,
 } from 'ai';
 import assert from 'assert';
-import {
-  AntigravityProvider,
-  createAntigravityProvider,
-  GithubProvider,
-} from 'oauth-providers';
 
 import type { Provider, ProvidersMap, ModelMap } from './types';
 import { models } from './models';
@@ -126,75 +121,6 @@ export const createModelCreatorCompatible = (opts?: {
 };
 
 export const providers: ProvidersMap = {
-  'github-copilot': {
-    id: 'github-copilot',
-    source: 'built-in',
-    name: 'GitHub Copilot',
-    env: [],
-    apiEnv: [],
-    api: 'https://api.githubcopilot.com',
-    doc: 'https://github.com/settings/copilot/features',
-    models: {
-      'claude-opus-4': models['claude-4-opus'],
-      'grok-code-fast-1': models['grok-code-fast-1'],
-      'claude-3.5-sonnet': models['claude-3-5-sonnet-20241022'],
-      'o3-mini': models['o3-mini'],
-      'gpt-5-codex': models['gpt-5-codex'],
-      'gpt-4o': models['gpt-4o'],
-      'gpt-4.1': models['gpt-4.1'],
-      'o4-mini': models['o4-mini'],
-      'claude-opus-41': models['claude-4.1-opus'],
-      'gpt-5-mini': models['gpt-5-mini'],
-      'claude-3.7-sonnet': models['claude-3-7-sonnet'],
-      'gemini-2.5-pro': models['gemini-2.5-pro'],
-      'gemini-3-pro-preview': models['gemini-3-pro-preview'],
-      o3: models['o3'],
-      'claude-sonnet-4': models['claude-4-sonnet'],
-      'gpt-5.1-codex': models['gpt-5.1-codex'],
-      'gpt-5.1-codex-mini': models['gpt-5.1-codex-mini'],
-      'gpt-5.1': models['gpt-5.1'],
-      'gpt-5': models['gpt-5'],
-      'claude-3.7-sonnet-thought': models['claude-3-7-sonnet'],
-      'claude-sonnet-4.5': models['claude-4-5-sonnet'],
-      'claude-opus-4-5': models['claude-opus-4-5'],
-      'gpt-5.2': models['gpt-5.2'],
-    },
-    async createModel(name, provider, options) {
-      const apiKey = provider.options?.apiKey;
-      assert(
-        apiKey,
-        'Failed to get GitHub Copilot token, use /login to login first',
-      );
-      let account = JSON.parse(apiKey);
-      const githubProvider = new GithubProvider();
-      githubProvider.setState(account);
-      if (githubProvider.isTokenExpired()) {
-        await githubProvider.refresh();
-        account = githubProvider.getState();
-        provider.options = {
-          ...provider.options,
-          apiKey: JSON.stringify(account),
-        };
-        options.setGlobalConfig(
-          'provider.github-copilot.options.apiKey',
-          JSON.stringify(account),
-          true,
-        );
-      }
-      const token = account.copilot_token;
-      return createOpenAI({
-        baseURL: 'https://api.individual.githubcopilot.com',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'User-Agent': 'GitHubCopilotChat/0.26.7',
-          'Editor-Version': 'vscode/1.99.3',
-          'Editor-Plugin-Version': 'copilot-chat/0.26.7',
-          'Copilot-Integration-Id': 'vscode-chat',
-        },
-        apiKey: '',
-      }).chat(name);
-    },
-  },
   openai: {
     id: 'openai',
     source: 'built-in',
@@ -800,49 +726,6 @@ export const providers: ProvidersMap = {
       'Grok-4.1-Fast': models['grok-4.1-fast'],
     },
     createModel: defaultModelCreator,
-  },
-  antigravity: {
-    id: 'antigravity',
-    source: 'built-in',
-    env: [],
-    name: 'Antigravity',
-    doc: 'https://antigravity.google/',
-    models: {
-      'gemini-2.5-flash-lite': models['gemini-2.5-flash-lite-preview-06-17'],
-      'gemini-2.5-flash': models['gemini-2.5-flash'],
-      'gemini-2.5-flash-thinking': models['gemini-2.5-flash'],
-      'gemini-2.5-pro': models['gemini-2.5-pro'],
-      'gemini-3-flash': models['gemini-3-flash-preview'],
-      'gemini-3-pro-low': models['gemini-3-pro-preview'],
-      'gemini-3-pro-high': models['gemini-3-pro-preview'],
-      'claude-sonnet-4-5': models['claude-4-5-sonnet'],
-      'claude-sonnet-4-5-thinking': models['claude-4-5-sonnet'],
-      'claude-opus-4-5-thinking': models['claude-opus-4-5'],
-      'gpt-oss-120b-medium': models['gpt-oss-120b'],
-    },
-    async createModel(name, provider, options) {
-      const apiKey = provider.options?.apiKey;
-      assert(apiKey, 'Antigravity not logged in.');
-      let account = JSON.parse(apiKey);
-      const p = new AntigravityProvider();
-      p.setState(account);
-      if (p.isTokenExpired()) {
-        await p.refresh();
-        account = p.getState();
-        provider.options = {
-          ...provider.options,
-          apiKey: JSON.stringify(account),
-        };
-        options.setGlobalConfig(
-          'provider.antigravity.options.apiKey',
-          JSON.stringify(account),
-          true,
-        );
-      }
-      return createAntigravityProvider({
-        account,
-      })(name);
-    },
   },
   nvidia: {
     id: 'nvidia',

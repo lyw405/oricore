@@ -2,7 +2,6 @@ import { execFile, spawn } from 'child_process';
 import createDebug from 'debug';
 import path from 'pathe';
 import { findActualExecutable } from 'spawn-rx';
-import { fileURLToPath } from 'url';
 import { matchesAnyPattern, parseProductIgnorePatterns } from './ignore';
 import { isLocal } from './isLocal';
 
@@ -15,15 +14,31 @@ export interface RipGrepResult {
   stderr: string;
 }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+/**
+ * Get the root directory of the project.
+ * Works in both ESM and CJS contexts.
+ */
+const getRootDir = () => {
+  const isDev = isLocal() || process.env.NODE_ENV === 'test';
 
-// In local dev (Bun) and test environments, source files are in src/
-// In production, compiled files are in dist/
-const rootDir =
-  isLocal() || process.env.NODE_ENV === 'test'
-    ? path.resolve(__dirname, '../../')
-    : path.resolve(__dirname, '../');
+  // Try to use __dirname first (available in CJS and when tsup compiles for CJS)
+  if (typeof __dirname !== 'undefined') {
+    return isDev ? path.resolve(__dirname, '../../') : path.resolve(__dirname, '../');
+  }
+
+  // Fallback for ESM: use import.meta.url
+  try {
+    const url = import.meta.url;
+    const __filename = url.startsWith('file://') ? new URL(url).pathname : url;
+    const moduleDir = path.dirname(__filename);
+    return isDev ? path.resolve(moduleDir, '../../') : path.resolve(moduleDir, '../');
+  } catch {
+    // Ultimate fallback: use process.cwd()
+    return process.cwd();
+  }
+};
+
+const rootDir = getRootDir();
 
 export function ripgrepPath() {
   const { cmd } = findActualExecutable('rg', []);

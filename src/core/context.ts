@@ -194,7 +194,8 @@ function normalizePlugins(cwd: string, plugins: (string | Plugin)[]) {
       if (typeof plugin === 'string') {
         const pluginPath = resolve.sync(plugin, { basedir: cwd });
         if (!jiti) {
-          jiti = createJiti(import.meta.url);
+          // Use cwd as base for jiti instead of import.meta.url for CJS compatibility
+          jiti = createJiti(cwd);
         }
         return (await jiti.import(pluginPath, {
           default: true,

@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0
 
 ### Added
 
+## [1.4.0] - 2026-02-03
+
+### ⚠️ BREAKING CHANGES
+
+- **Removed OAuth Providers**: GitHub Copilot and Antigravity providers removed
+  - `github-copilot` provider (18 models) removed
+  - `antigravity` provider (11 models) removed
+  - `oauth-providers` dependency removed
+  - Use alternative providers for affected models
+
+### Added
+
+- **CJS Support**: Added CommonJS build output
+  - `package.json` now exports both ESM (`import`) and CJS (`require`) formats
+  - Build system migrated from `bun build` to `tsup`
+  - Automatic `.d.ts` and `.d.cts` type declaration generation
+
+### Changed
+
+- **Build System**: Migrated to tsup
+  - Replaced `bun build` with `tsup` for better dual-format support
+  - Sourcemaps enabled for both ESM and CJS builds
+  - All dependencies remain external (not bundled)
+
+- **API Key Handling**: Improved quote handling
+  - API keys now automatically stripped of surrounding quotes
+  - Handles user input like `'key'` or `"key"`
+  - Handles `.env` files with `KEY='value'` format
+
+### Fixed
+
+- **ESM/CJS Compatibility**: Fixed module compatibility issues
+  - `ripgrep.ts`: Updated to work in both ESM and CJS contexts
+  - `context.ts`: Fixed jiti initialization to use `cwd` instead of `import.meta.url`
+  - Removed `@ts-ignore` comments in favor of proper type declarations
+
+- **Package Exports**: Cleaned up redundant export conditions
+  - Removed redundant `default` export (handled by `import`)
+
 ## [1.3.7] - 2026-02-02
 
 ### Added
