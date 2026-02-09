@@ -1,6 +1,6 @@
 {
   "name": "oricore",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "OriCore - A powerful AI engine with multi-modal support, tool calling, and extensible architecture",
   "type": "module",
   "main": "./dist/index.js",
