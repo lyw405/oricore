@@ -232,6 +232,7 @@ export const providers: ProvidersMap = {
       'claude-haiku-4-5': models['claude-haiku-4-5'],
       'claude-opus-4-5': models['claude-opus-4-5'],
       'claude-opus-4-6': models['claude-opus-4-6'],
+      'claude-sonnet-4-6': models['claude-sonnet-4-6'],
     },
     apiFormat: 'anthropic',
     headers: {
@@ -301,6 +302,7 @@ export const providers: ProvidersMap = {
       'anthropic/claude-opus-4': models['claude-4-opus'],
       'anthropic/claude-opus-4.1': models['claude-4.1-opus'],
       'anthropic/claude-opus-4.5': models['claude-opus-4-5'],
+      'anthropic/claude-sonnet-4.6': models['claude-sonnet-4-6'],
       'anthropic/claude-opus-4.6': models['claude-opus-4-6'],
       'deepseek/deepseek-r1-0528': models['deepseek-r1-0528'],
       'deepseek/deepseek-chat-v3-0324': models['deepseek-v3-0324'],
@@ -365,45 +367,6 @@ export const providers: ProvidersMap = {
         ),
       ).chat(name) as unknown as LanguageModelV3;
     },
-  },
-  iflow: {
-    id: 'iflow',
-    source: 'built-in',
-    env: ['IFLOW_API_KEY'],
-    name: 'iFlow',
-    api: 'https://apis.iflow.cn/v1/',
-    doc: 'https://iflow.cn/',
-    models: {
-      'qwen3-coder-plus': models['qwen3-coder-plus'],
-      'kimi-k2': models['kimi-k2'],
-      'kimi-k2-0905': models['kimi-k2-0905'],
-      'deepseek-v3': models['deepseek-v3-0324'],
-      'deepseek-v3.2': models['deepseek-v3-2-exp'],
-      'deepseek-r1': models['deepseek-r1-0528'],
-      'glm-4.6': models['glm-4.6'],
-      'glm-4.7': models['glm-4.7'],
-      'glm-5': models['glm-5'],
-      'minimax-m2.1': models['minimax-m2.1'],
-      'minimax-m2.5': models['minimax-m2.5'],
-      'qwen3-max': models['qwen3-max'],
-    },
-    createModel: createModelCreatorCompatible({
-      fetch: (url: string, options: any) => {
-        return fetch(url, {
-          ...options,
-          headers: {
-            ...options.headers,
-            'user-agent': 'iFlow-Cli',
-          },
-        });
-      },
-      middlewares: [
-        mergeSystemMessagesMiddleware,
-        extractReasoningMiddleware({
-          tagName: 'think',
-        }) as LanguageModelV3Middleware,
-      ],
-    }),
   },
   moonshotai: {
     id: 'moonshotai',
@@ -484,6 +447,11 @@ export const providers: ProvidersMap = {
       'deepseek-ai/DeepSeek-V3.1': models['deepseek-v3-1'],
       'deepseek-ai/DeepSeek-V3': models['deepseek-v3-0324'],
       'zai-org/GLM-4.5': models['glm-4.5'],
+      'Pro/moonshotai/Kimi-K2.5': models['kimi-k2-5'],
+      'Pro/zai-org/GLM-5': models['glm-5'],
+      'Pro/zai-org/GLM-4.7': models['glm-4.7'],
+      'Pro/MiniMaxAI/MiniMax-M2.5': models['minimax-m2.5'],
+      'Pro/deepseek-ai/DeepSeek-V3.2': models['deepseek-v3.2'],
     },
     createModel: defaultModelCreator,
   },
@@ -559,6 +527,26 @@ export const providers: ProvidersMap = {
       'glm-5': models['glm-5'],
     },
     createModel: defaultModelCreator,
+  },
+  'bailian-coding-plan': {
+    id: 'bailian-coding-plan',
+    source: 'built-in',
+    env: ['BAILIAN_CODING_API_KEY'],
+    name: 'BaiLian Coding Plan',
+    api: 'https://coding.dashscope.aliyuncs.com/apps/anthropic/v1',
+    doc: 'https://www.aliyun.com/benefit/scene/codingplan',
+    apiFormat: 'anthropic',
+    models: {
+      'qwen3.5-plus': models['qwen3-5-plus'],
+      'qwen3-max-2026-01-23': models['qwen3-max'],
+      'qwen3-coder-next': models['qwen3-coder-plus'],
+      'qwen3-coder-plus': models['qwen3-coder-plus'],
+      'MiniMax-M2.5': models['minimax-m2.5'],
+      'glm-5': models['glm-5'],
+      'glm-4.7': models['glm-4.7'],
+      'kimi-k2.5': models['kimi-k2-5'],
+    },
+    createModel: defaultAnthropicModelCreator,
   },
   zhipuai: {
     id: 'zhipuai',
@@ -806,6 +794,7 @@ export const providers: ProvidersMap = {
       'claude-4-5-sonnet': models['claude-4-5-sonnet'],
       'claude-haiku-4-5': models['claude-haiku-4-5'],
       'claude-opus-4-5': models['claude-opus-4-5'],
+      'claude-sonnet-4-6': models['claude-sonnet-4-6'],
       'claude-opus-4-6': models['claude-opus-4-6'],
       'gpt-5.1': models['gpt-5.1'],
       'gpt-5.1-codex-max': models['gpt-5.1-codex-max'],
@@ -821,6 +810,38 @@ export const providers: ProvidersMap = {
       }
       if (name.startsWith('gpt-')) {
         return openaiModelResponseCreator(name, provider);
+      }
+      return defaultModelCreator(name, provider);
+    },
+  },
+  kilo: {
+    id: 'kilo',
+    source: 'built-in',
+    env: ['KILO_API_KEY'],
+    name: 'Kilo',
+    api: 'https://api.kilo.ai/api/gateway',
+    doc: 'https://kilo.ai',
+    apiFormat: 'openai',
+    models: {
+      'z-ai/glm-5': models['glm-5'],
+      'z-ai/glm-5:free': models['glm-5'],
+      'z-ai/glm-4.7': models['glm-4.7'],
+      'anthropic/claude-opus-4.6': models['claude-opus-4-6'],
+      'anthropic/claude-sonnet-4.6': models['claude-sonnet-4-6'],
+      'anthropic/claude-haiku-4.5': models['claude-haiku-4-5'],
+      'anthropic/claude-sonnet-4.5': models['claude-4-5-sonnet'],
+      'google/gemini-3-flash-preview': models['gemini-3-flash-preview'],
+      'google/gemini-3-pro-preview': models['gemini-3-pro-preview'],
+      'minimax/minimax-m2.5:free': models['minimax-m2.5'],
+      'minimax/minimax-m2.5': models['minimax-m2.5'],
+      'moonshotai/kimi-k2.5': models['kimi-k2-5'],
+    },
+    createModel: (name, provider) => {
+      if (name.includes('claude-')) {
+        return defaultAnthropicModelCreator(name, provider);
+      }
+      if (name.includes('gemini-')) {
+        return defaultAnthropicModelCreator(name, provider);
       }
       return defaultModelCreator(name, provider);
     },

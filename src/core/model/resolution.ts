@@ -25,6 +25,19 @@ function transformVariants(model: Model, provider: Provider): Record<string, any
   const id = (model.id || '').toLowerCase();
 
   // These models use their own reasoning mechanism without variants
+  // bailian-coding-plan handles kimi/minimax/glm with special on/off toggle
+  if (provider.id === 'bailian-coding-plan') {
+    if (id.includes('kimi') || id.includes('minimax') || id.includes('glm')) {
+      return {
+        on: {
+          thinking: {
+            type: 'enabled' as const,
+          },
+        },
+      };
+    }
+  }
+
   if (
     id.includes('deepseek') ||
     id.includes('minimax') ||
