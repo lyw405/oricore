@@ -9,6 +9,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.3.0
 
 ### Added
 
+## [1.5.0] - 2026-03-27
+
+### Added
+
+- **Parallel Tool Execution**: Support for parallel tool calls
+  - Improved tool execution performance with parallel processing
+  - Enhanced safety checks for concurrent tool operations
+
+- **Model Updates**: Added latest AI models
+  - `gpt-5.3-codex` - Latest OpenAI Codex model
+  - `claude-opus-4-6` - Anthropic Claude Opus 4.6
+  - `GLM-5` - Zhipu AI GLM-5 series
+  - `minimax-m2.5` / `minimax-m2.7` - MiniMax M2 series models
+
+### Changed
+
+- **Sync with Neovate Code v0.28.3-v0.28.5**
+  - Synchronized improvements from neovate-code repository
+  - Enhanced tool safety mechanisms
+  - Updated provider configurations
+
+- **ESM/CJS Dual Support**: Full CommonJS and ESM compatibility
+  - Migrated build system from `bun build` to `tsup`
+  - Dual module format output (ESM + CJS)
+  - Automatic type declaration generation for both formats
+  - Sourcemaps enabled for debugging
+
+### ⚠️ BREAKING CHANGES
+
+- **Removed OAuth Providers**
+  - `github-copilot` provider (18 models) removed
+  - `antigravity` provider (11 models) removed
+  - `oauth-providers` dependency removed
+  - Use alternative providers for affected models
+
+### Changed
+
+- **API Key Handling**: Improved quote handling
+  - API keys now automatically stripped of surrounding quotes
+  - Handles user input like `'key'` or `"key"`
+  - Handles `.env` files with `KEY='value'` format
+
+### Fixed
+
+- **ESM/CJS Compatibility**: Fixed module compatibility issues
+  - `ripgrep.ts`: Updated to work in both ESM and CJS contexts
+  - `context.ts`: Fixed jiti initialization to use `cwd` instead of `import.meta.url`
+  - Removed `@ts-ignore` comments in favor of proper type declarations
+
 ## [1.4.0] - 2026-02-03
 
 ### ⚠️ BREAKING CHANGES
