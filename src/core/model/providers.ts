@@ -347,6 +347,7 @@ export const providers: ProvidersMap = {
       'z-ai/glm-4.7': models['glm-4.7'],
       'z-ai/glm-5': models['glm-5'],
       'minimax/minimax-m2': models['minimax-m2'],
+      'minimax/minimax-m2.5': models['minimax-m2.5'],
       'openrouter/sherlock-dash-alpha': models['sherlock-dash-alpha'],
       'openrouter/sherlock-think-alpha': models['sherlock-think-alpha'],
       'xiaomi/mimo-v2-flash:free': models['mimo-v2-flash'],
@@ -381,7 +382,9 @@ export const providers: ProvidersMap = {
       'deepseek-r1': models['deepseek-r1-0528'],
       'glm-4.6': models['glm-4.6'],
       'glm-4.7': models['glm-4.7'],
+      'glm-5': models['glm-5'],
       'minimax-m2.1': models['minimax-m2.1'],
+      'minimax-m2.5': models['minimax-m2.5'],
       'qwen3-max': models['qwen3-max'],
     },
     createModel: createModelCreatorCompatible({
@@ -498,6 +501,7 @@ export const providers: ProvidersMap = {
       'ZhipuAI/GLM-4.5': models['glm-4.5'],
       'ZhipuAI/GLM-4.5V': models['glm-4.5v'],
       'ZhipuAI/GLM-4.6': models['glm-4.6'],
+      'ZhipuAI/GLM-5': models['glm-5'],
       'deepseek-ai/DeepSeek-V3.2': models['deepseek-v3.2'],
       'deepseek-ai/DeepSeek-V3.2-Speciale': models['deepseek-v3.2-speciale'],
     },
@@ -610,6 +614,7 @@ export const providers: ProvidersMap = {
       'deepseek/deepseek-v3.2-speciale': models['deepseek-v3.2-speciale'],
       'deepseek/deepseek-chat': models['deepseek-v3-2-exp'],
       'deepseek/deepseek-reasoner': models['deepseek-r1-0528'],
+      'minimax/minimax-m2.5': models['minimax-m2.5'],
     },
     headers: {
       'X-Title': 'OriCore',
