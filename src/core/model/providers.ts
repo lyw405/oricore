@@ -164,6 +164,7 @@ export const providers: ProvidersMap = {
       'gemini-2.5-flash-lite': models['gemini-2.5-flash-lite-preview-06-17'],
       'gemini-2.5-pro': models['gemini-2.5-pro'],
       'gemini-3-pro-preview': models['gemini-3-pro-preview'],
+      'gemini-3.1-pro-preview': models['gemini-3.1-pro-preview'],
       'gemini-3-flash-preview': models['gemini-3-flash-preview'],
     },
     createModel(name, provider) {

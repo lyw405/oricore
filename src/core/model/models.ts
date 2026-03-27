@@ -322,6 +322,22 @@ export const models: ModelMap = {
     open_weights: false,
     limit: { context: 200000, output: 65536 },
   },
+  'gemini-3.1-pro-preview': {
+    name: 'Gemini 3.1 Pro Preview',
+    attachment: true,
+    reasoning: true,
+    temperature: true,
+    tool_call: true,
+    knowledge: '2025-01',
+    release_date: '2026-02-19',
+    last_updated: '2026-02-19',
+    modalities: {
+      input: ['text', 'image', 'audio', 'video', 'pdf'],
+      output: ['text'],
+    },
+    open_weights: false,
+    limit: { context: 1048576, output: 65536 },
+  },
   'gemini-3-flash-preview': {
     name: 'Gemini 3 Flash Preview',
     attachment: true,

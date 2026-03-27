@@ -1,4 +1,5 @@
 import type {
+  ImagePart,
   NormalizedMessage,
   ReasoningPart,
   TextPart,
@@ -152,6 +153,23 @@ export function normalizeMessagesForCompact(
           role: 'user' as const,
           content: '[Tool operations completed]',
         };
+      }
+
+      // Filter out image parts from user messages in compact mode
+      // Images consume too many tokens and are not needed for summarization
+      if (message.role === 'user') {
+        if (Array.isArray(message.content)) {
+          const filteredContent = message.content.filter(
+            (part): part is TextPart => part.type === 'text',
+          );
+          return {
+            ...message,
+            content: (filteredContent.length > 0
+              ? filteredContent
+              : message.content) as Array<TextPart | ImagePart>,
+          };
+        }
+        return message;
       }
 
       return message;
