@@ -345,6 +345,7 @@ export const providers: ProvidersMap = {
       'z-ai/glm-4.6': models['glm-4.6'],
       'z-ai/glm-4.6v': models['glm-4.6v'],
       'z-ai/glm-4.7': models['glm-4.7'],
+      'z-ai/glm-5': models['glm-5'],
       'minimax/minimax-m2': models['minimax-m2'],
       'openrouter/sherlock-dash-alpha': models['sherlock-dash-alpha'],
       'openrouter/sherlock-think-alpha': models['sherlock-think-alpha'],
@@ -532,6 +533,7 @@ export const providers: ProvidersMap = {
       'glm-4.6': models['glm-4.6'],
       'glm-4.6v': models['glm-4.6v'],
       'glm-4.7': models['glm-4.7'],
+      'glm-5': models['glm-5'],
     },
     createModel: defaultModelCreator,
   },
@@ -550,6 +552,7 @@ export const providers: ProvidersMap = {
       'glm-4.5-flash': models['glm-4.5-flash'],
       'glm-4.6v': models['glm-4.6v'],
       'glm-4.7': models['glm-4.7'],
+      'glm-5': models['glm-5'],
     },
     createModel: defaultModelCreator,
   },
@@ -568,6 +571,7 @@ export const providers: ProvidersMap = {
       'glm-4.5-flash': models['glm-4.5-flash'],
       'glm-4.6v': models['glm-4.6v'],
       'glm-4.7': models['glm-4.7'],
+      'glm-5': models['glm-5'],
     },
     createModel: defaultModelCreator,
   },
@@ -601,6 +605,8 @@ export const providers: ProvidersMap = {
       'z-ai/glm-4.6': models['glm-4.6'],
       'z-ai/glm-4.6v': models['glm-4.6v'],
       'z-ai/glm-4.6v-flash': models['glm-4.6v'],
+      'z-ai/glm-4.7': models['glm-4.7'],
+      'z-ai/glm-5': models['glm-5'],
       'deepseek/deepseek-v3.2-speciale': models['deepseek-v3.2-speciale'],
       'deepseek/deepseek-chat': models['deepseek-v3-2-exp'],
       'deepseek/deepseek-reasoner': models['deepseek-r1-0528'],
@@ -620,6 +626,8 @@ export const providers: ProvidersMap = {
     models: {
       'minimax-m2': models['minimax-m2'],
       'minimax-m2.1': models['minimax-m2.1'],
+      'minimax-m2.5': models['minimax-m2.5'],
+      'minimax-m2.7': models['minimax-m2.7'],
     },
     createModel(name, provider) {
       const baseURL = getProviderBaseURL(provider);
@@ -639,6 +647,8 @@ export const providers: ProvidersMap = {
     models: {
       'minimax-m2': models['minimax-m2'],
       'minimax-m2.1': models['minimax-m2.1'],
+      'minimax-m2.5': models['minimax-m2.5'],
+      'minimax-m2.7': models['minimax-m2.7'],
     },
     createModel(name, provider) {
       const baseURL = getProviderBaseURL(provider);
@@ -770,6 +780,8 @@ export const providers: ProvidersMap = {
       'moonshotai/kimi-k2-thinking': models['kimi-k2-thinking'],
       'moonshotai/kimi-k2.5': models['kimi-k2.5'],
       'deepseek/deepseek-chat-v3.2': models['deepseek-v3-2-exp'],
+      'openai/gpt-oss-120b': models['gpt-oss-120b'],
+      'xiaomimimo/mimo-v2-flash': models['mimo-v2-flash'],
     },
     createModel: defaultModelCreator,
   },
