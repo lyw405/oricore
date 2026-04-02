@@ -13,6 +13,11 @@ Documentation for OriCore's custom skill system.
 - [Skill Structure](#skill-structure)
 - [Installing Skills](#installing-skills)
 - [Using Skills](#using-skills)
+- [Advanced Features](#advanced-features)
+  - [Fork Execution Mode](#fork-execution-mode)
+  - [Tool Whitelist](#tool-whitelist)
+  - [Conditional Activation](#conditional-activation)
+  - [Bundled Skills](#bundled-skills)
 - [Skill Sources](#skill-sources)
 
 ---
@@ -64,41 +69,6 @@ Skills can be placed in the following locations:
 | Claude global skill | `~/.claude/skills/*/SKILL.md` | `GlobalClaude` |
 | OriCore global skill | `~/.oricore/skills/*/SKILL.md` | `Global` |
 
-### Example: Creating a Testing Expert Skill
-
-Create `.oricore/skills/testing-expert/SKILL.md`:
-
-```markdown
----
-name: testing-expert
-description: Unit testing and integration testing specialist
----
-
-You are a testing expert. Specialize in:
-
-- Writing unit tests with Jest/Vitest
-- Integration testing strategies
-- Test-driven development (TDD)
-- Mock and stub strategies
-- Test coverage analysis
-
-## Guidelines
-
-1. Always provide runnable test examples
-2. Explain testing concepts clearly
-3. Suggest appropriate test cases
-4. Consider edge cases in tests
-5. Balance between coverage and practicality
-
-## Output Format
-
-Provide code examples with:
-- Test framework setup
-- Test cases
-- Mock/stub examples
-- Expected outputs
-```
-
 ---
 
 ## Skill Structure
@@ -107,11 +77,16 @@ Provide code examples with:
 
 ```yaml
 ---
-name: my-skill              # Skill name (required)
-description: Skill description  # Description (required)
-version: 1.0.0             # Version (optional)
-author: Your Name          # Author (optional)
-tags: [testing, typescript]  # Tags (optional)
+name: my-skill                    # Skill name (required)
+description: Skill description    # Description (required)
+
+# Advanced options:
+allowedTools: Read, Grep, Bash    # Comma-separated tool whitelist (optional)
+context: fork                     # Execution mode: 'inline' or 'fork' (optional)
+agent: code-reviewer              # Agent type for fork mode (optional)
+paths: "src/**/*.ts,*.test.js"    # Conditional activation patterns (optional)
+userInvocable: true               # Allow user slash commands (default: true)
+modelInvocable: true              # Allow model invocation (default: true)
 ---
 ```
 
@@ -151,14 +126,6 @@ await skillManager.addSkill('github:username/repo', {
 });
 ```
 
-### Install from GitLab
-
-```typescript
-await skillManager.addSkill('gitlab:username/repo', {
-  global: false,
-});
-```
-
 ### Installation Options
 
 ```typescript
@@ -169,30 +136,6 @@ interface AddSkillOptions {
   name?: string;        // Custom skill folder name
   targetDir?: string;   // Custom installation target directory (overrides global/claude settings)
 }
-```
-
-### Preview Before Install
-
-```typescript
-// Preview skills
-const preview = await skillManager.previewSkills('github:username/repo');
-console.log('Found skills:', preview.skills);
-
-// Selective install
-await skillManager.installFromPreview(
-  preview,
-  [
-    preview.skills[0],  // Only install the first one
-  ],
-  'github:username/repo',
-  {
-    global: false,     // Optional: installation options
-    overwrite: false,
-  }
-);
-
-// Clean up preview temporary files
-skillManager.cleanupPreview(preview);
 ```
 
 ---
@@ -234,31 +177,128 @@ skills.forEach(skill => {
 await skillManager.removeSkill('testing-expert');
 ```
 
-### Other Utility Methods
+---
+
+## Advanced Features
+
+### Fork Execution Mode
+
+Skills can run in isolated sub-agents for complex tasks:
+
+```markdown
+---
+name: complex-analysis
+description: Perform complex code analysis
+context: fork                    # Run in isolated sub-agent
+agent: code-reviewer             # Use specific agent type
+allowedTools: Read, Grep, Glob   # Limit available tools
+---
+
+Analyze the codebase structure and provide recommendations...
+```
+
+**Benefits of fork execution:**
+- Complete isolation from main conversation
+- Tool permission restrictions via `allowedTools`
+- Specialized agent types for specific tasks
+- Cleaner separation of concerns
+
+### Tool Whitelist
+
+Control which tools a skill can access:
+
+```markdown
+---
+name: safe-reviewer
+description: Code reviewer with limited tool access
+allowedTools: Read, Grep         # Only read and search tools
+---
+
+You can only read files and search content. You cannot modify files or execute commands.
+```
+
+When `allowedTools` is specified:
+- Only listed tools are available during skill execution
+- Provides capability-based security
+- Works in both `inline` and `fork` execution modes
+
+### Conditional Activation
+
+Skills can be automatically activated based on file paths:
+
+```markdown
+---
+name: typescript-expert
+description: TypeScript specialist
+description: TypeScript specialist
+paths: "src/**/*.ts,*.tsx"       # Activate when working with TypeScript files
+---
+
+You are a TypeScript expert. Provide type-safe solutions...
+```
+
+Activate skills programmatically:
 
 ```typescript
-// Get single skill
-const skill = skillManager.getSkill('testing-expert');
-if (skill) {
-  console.log(`Skill: ${skill.name}`);
-  console.log(`Description: ${skill.description}`);
-  console.log(`Source: ${skill.source}`);
-  console.log(`Path: ${skill.path}`);
-}
+// When user opens/modifies files
+const activated = skillManager.activateSkillsForPaths([
+  'src/components/Button.tsx',
+  'src/utils/helpers.ts'
+]);
+console.log('Activated skills:', activated);
 
-// Get loading errors
-const errors = skillManager.getErrors();
-errors.forEach(error => {
-  console.error(`[${error.path}] ${error.message}`);
+// Get only active skills
+const activeSkills = skillManager.getSkills({ activeOnly: true });
+
+// Check if a skill is active
+if (skillManager.isSkillActive('typescript-expert')) {
+  // Skill is available for use
+}
+```
+
+### Bundled Skills
+
+Create TypeScript-encoded skills for dynamic behavior:
+
+```typescript
+import { registerBundledSkill, createBundledSkill } from 'oricore';
+
+// Register a simple bundled skill
+registerBundledSkill({
+  name: 'dynamic-helper',
+  description: 'A skill with dynamic content',
+  prompt: async (args, context) => {
+    const cwd = context.cwd;
+    const files = await context.apply({
+      hook: 'glob',
+      args: [`${cwd}/src/**/*.ts`],
+      memo: [],
+      type: PluginHookType.SeriesMerge,
+    });
+    return `You are helping with ${files.length} TypeScript files...`;
+  },
+  allowedTools: ['Read', 'Grep'],
+  context: 'fork',
 });
 
-// Read skill content (without frontmatter)
-const body = await skillManager.readSkillBody(skill);
-console.log(body);
-
-// Remove skill (specify directory)
-await skillManager.removeSkill('testing-expert', '/custom/path');
+// Or create and register separately
+const mySkill = createBundledSkill({
+  name: 'my-skill',
+  description: 'My custom skill',
+  prompt: 'You are a helpful assistant...',
+  aliases: ['ms', 'my'],           // Alternative names
+  whenToUse: 'Use this when...',   // Guidance for the model
+  userInvocable: true,
+  modelInvocable: true,
+});
 ```
+
+**Bundled Skill Features:**
+- Dynamic prompt generation via `getPrompt` function
+- Conditional enablement via `isEnabled`
+- Aliases for alternative invocation names
+- Embedded reference files
+- Full TypeScript type safety
 
 ---
 
@@ -268,11 +308,12 @@ await skillManager.removeSkill('testing-expert', '/custom/path');
 
 ```typescript
 enum SkillSource {
-  Plugin = 'plugin',           // Skills provided by plugins
-  GlobalClaude = 'global-claude',   // Claude global directory (~/.claude/skills/)
-  Global = 'global',           // OriCore global directory (~/.oricore/skills/)
-  ProjectClaude = 'project-claude', // Claude project directory (.claude/skills/)
-  Project = 'project',         // OriCore project directory (.oricore/skills/)
+  Builtin = 'builtin',           // Built-in bundled skills
+  Plugin = 'plugin',             // Skills provided by plugins
+  GlobalClaude = 'global-claude',     // Claude global directory (~/.claude/skills/)
+  Global = 'global',             // OriCore global directory (~/.oricore/skills/)
+  ProjectClaude = 'project-claude',   // Claude project directory (.claude/skills/)
+  Project = 'project',           // OriCore project directory (.oricore/skills/)
 }
 ```
 
@@ -280,60 +321,116 @@ enum SkillSource {
 
 Skills are loaded in the following order (later sources override earlier ones with the same name):
 
-1. **Plugin** - Plugin-provided skills
-2. **GlobalClaude** - Claude global skills (`~/.claude/skills/`)
-3. **Global** - OriCore global skills (`~/.oricore/skills/`)
-4. **ProjectClaude** - Claude project skills (`.claude/skills/`)
-5. **Project** - OriCore project skills (`.oricore/skills/`)
+1. **Builtin** - Built-in bundled skills
+2. **Plugin** - Plugin-provided skills
+3. **GlobalClaude** - Claude global skills (`~/.claude/skills/`)
+4. **Global** - OriCore global skills (`~/.oricore/skills/`)
+5. **ProjectClaude** - Claude project skills (`.claude/skills/`)
+6. **Project** - OriCore project skills (`.oricore/skills/`)
 
 ---
 
 ## Complete Example
 
-### 1. Create a Skill
+### Method 1: File-Based Skills (Recommended)
 
-Create `.oricore/skills/ts-refactoring/SKILL.md`:
+**Important**: Skill files must exist **before** engine initialization to be auto-loaded.
+
+#### Step 1: Create the Skill File
+
+Create `.oricore/skills/security-audit/SKILL.md` **before running the code**:
 
 ```markdown
 ---
-name: ts-refactoring
-description: TypeScript code refactoring specialist
+name: security-audit
+description: Security audit specialist for Node.js projects
+context: fork
+agent: security-expert
+allowedTools: Read, Grep, Glob
+userInvocable: true
+modelInvocable: true
+paths: "package.json,package-lock.json"
 ---
 
-You are a TypeScript refactoring expert. Focus on:
+You are a security audit specialist. Focus on:
 
-## Refactoring Principles
+## Audit Checklist
 
-1. **Improve readability** - Make code self-documenting
-2. **Reduce complexity** - Simplify complex logic
-3. **Enhance maintainability** - Easier to modify
-4. **Preserve behavior** - Same functionality, better code
-5. **Leverage TypeScript** - Use type system effectively
+1. **Dependency vulnerabilities**
+   - Check for known vulnerable packages
+   - Review outdated dependencies
 
-## Refactoring Steps
+2. **Code security patterns**
+   - SQL injection risks
+   - XSS vulnerabilities
+   - Unsafe eval usage
 
-1. Identify code smells
-2. Suggest specific improvements
-3. Explain why each change helps
-4. Provide before/after examples
-5. Suggest testing approach
+3. **Configuration issues**
+   - Exposed secrets
+   - Weak security headers
+   - Missing CSRF protection
 
-## Common Patterns
+## Output Format
 
-- Extract functions/methods
-- Rename for clarity
-- Reduce nesting
-- Use appropriate types
-- Eliminate duplication
+Provide findings as:
+- Severity level (Critical/High/Medium/Low)
+- Specific location
+- Recommended fix with code example
 ```
 
-### 2. Use the Skill
+#### Step 2: Initialize Engine and Use the Skill
 
 ```typescript
 import { createEngine } from 'oricore';
 
 const engine = createEngine({
-  productName: 'RefactorTool',
+  productName: 'SecureCode',
+  version: '1.0.0',
+});
+
+// Skills are auto-loaded during initialization
+await engine.initialize({
+  model: 'deepseek/deepseek-chat',
+  provider: {
+    deepseek: {
+      options: {
+        apiKey: 'your-key',
+      },
+    },
+  },
+});
+
+// Verify the skill is loaded
+const skillManager = engine.getContext().skillManager;
+const skills = skillManager.getSkills();
+console.log('Loaded skills:', skills.map(s => s.name));
+// Output should include: ['security-audit', ...]
+
+// Activate skills based on current files (for conditional activation)
+skillManager.activateSkillsForPaths(['package.json', 'src/app.ts']);
+
+// Use skill - will run in fork mode with restricted tools
+const result = await engine.sendMessage({
+  message: 'Run security-audit on this project',
+  write: true,
+});
+
+console.log(result.data.text);
+
+await engine.shutdown();
+```
+
+### Method 2: Dynamic Skill Installation
+
+Use this when you need to add skills programmatically at runtime:
+
+```typescript
+import { createEngine } from 'oricore';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const engine = createEngine({
+  productName: 'SecureCode',
   version: '1.0.0',
 });
 
@@ -348,66 +445,74 @@ await engine.initialize({
   },
 });
 
-// Use skill
-const result = await engine.sendMessage({
-  message: 'Use ts-refactoring skill to refactor this function',
-  write: true,
-});
+// Option A: Install from a local directory
+const skillManager = engine.getContext().skillManager;
 
-console.log(result.data.text);
+// First, create the skill file
+const skillDir = path.join(process.cwd(), '.oricore', 'skills', 'my-skill');
+fs.mkdirSync(skillDir, { recursive: true });
+fs.writeFileSync(
+  path.join(skillDir, 'SKILL.md'),
+  `---
+name: my-skill
+description: My custom skill
+---
+
+You are a helpful assistant specialized in...
+`
+);
+
+// Then install it
+await skillManager.addSkill(skillDir, { global: false });
+
+// Verify installation
+const skill = skillManager.getSkill('my-skill');
+if (skill) {
+  console.log('Skill installed:', skill.name);
+}
+
+// Option B: Install from GitHub
+await skillManager.addSkill('github:username/repo', {
+  global: false,
+  name: 'github-skill',
+});
 
 await engine.shutdown();
 ```
 
----
+### Method 3: Bundled Skills (Programmatic)
 
-## Advanced Features
-
-### Dynamic Skill Loading
+For skills that need dynamic behavior:
 
 ```typescript
-const skillManager = new SkillManager({ context });
+import { createEngine, registerBundledSkill } from 'oricore';
 
-// Load from multiple sources
-await Promise.all([
-  skillManager.addSkill('github:user/repo1'),
-  skillManager.addSkill('gitlab:user/repo2'),
-  skillManager.addSkill('/local/path/skill3'),
-]);
-```
+// Register bundled skill BEFORE initializing engine
+registerBundledSkill({
+  name: 'dynamic-analyzer',
+  description: 'Analyzes project structure dynamically',
+  prompt: async (args, context) => {
+    const files = await context.apply({
+      hook: 'glob',
+      args: [`${context.cwd}/src/**/*.ts`],
+      memo: [],
+      type: PluginHookType.SeriesMerge,
+    });
+    return `You are analyzing a project with ${files.length} TypeScript files. Args: ${args}`;
+  },
+  allowedTools: ['Read', 'Grep', 'Glob'],
+  context: 'fork',
+  userInvocable: true,
+  modelInvocable: true,
+});
 
-### Skill Error Handling
+const engine = createEngine({...});
+await engine.initialize({...});
 
-```typescript
-const result = await skillManager.addSkill('github:user/repo');
-
-if (result.errors?.length) {
-  console.error('Installation failed:', result.errors);
-}
-
-if (result.installed?.length) {
-  console.log('Installed:', result.installed);
-}
-
-if (result.skipped?.length) {
-  console.log('Skipped:', result.skipped);
-  // Example output: [{ name: 'my-skill', reason: 'already exists' }]
-}
-```
-
-### Installation Return Value
-
-```typescript
-interface AddSkillResult {
-  installed: SkillMetadata[];              // Successfully installed skills
-  skipped: { name: string; reason: string }[];  // Skipped skills (already exist)
-  errors: SkillError[];                    // Installation errors
-}
-
-interface SkillError {
-  path: string;
-  message: string;
-}
+// The bundled skill is automatically available
+const result = await engine.sendMessage({
+  message: 'Use dynamic-analyzer to check the codebase',
+});
 ```
 
 ---
@@ -419,6 +524,9 @@ interface SkillError {
 3. **Structured content** - Use sections and headings to organize
 4. **Provide examples** - Include input/output examples
 5. **Version control** - Use Git to manage skills
+6. **Security** - Use `allowedTools` to limit capabilities
+7. **Fork for complexity** - Use `context: fork` for complex, isolated tasks
+8. **Conditional activation** - Use `paths` for context-aware skills
 
 ---
 

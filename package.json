@@ -1,6 +1,6 @@
 {
   "name": "oricore",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "OriCore - A powerful AI engine with multi-modal support, tool calling, and extensible architecture",
   "type": "module",
   "main": "./dist/index.js",
@@ -73,6 +73,7 @@
     "gpt-tokenizer": "^3.4.0",
     "jiti": "^2.6.1",
     "jsonrepair": "^3.10.0",
+    "minimatch": "^10.0.1",
     "pathe": "^2.0.3",
     "pdf-parse": "^2.4.5",
     "resolve": "^1.22.11",

@@ -13,6 +13,11 @@ OriCore 的自定义技能系统文档。
 - [Skill 结构](#skill-结构)
 - [安装 Skill](#安装-skill)
 - [使用 Skill](#使用-skill)
+- [高级功能](#高级功能)
+  - [Fork 执行模式](#fork-执行模式)
+  - [工具白名单](#工具白名单)
+  - [条件激活](#条件激活)
+  - [Bundled Skills](#bundled-skills)
 - [Skill 源](#skill-源)
 
 ---
@@ -64,41 +69,6 @@ Skill 可以放在以下位置：
 | Claude 全局 Skill | `~/.claude/skills/*/SKILL.md` | `GlobalClaude` |
 | OriCore 全局 Skill | `~/.oricore/skills/*/SKILL.md` | `Global` |
 
-### 示例：创建测试专家 Skill
-
-创建 `.oricore/skills/testing-expert/SKILL.md`：
-
-```markdown
----
-name: testing-expert
-description: Unit testing and integration testing specialist
----
-
-You are a testing expert. Specialize in:
-
-- Writing unit tests with Jest/Vitest
-- Integration testing strategies
-- Test-driven development (TDD)
-- Mock and stub strategies
-- Test coverage analysis
-
-## Guidelines
-
-1. Always provide runnable test examples
-2. Explain testing concepts clearly
-3. Suggest appropriate test cases
-4. Consider edge cases in tests
-5. Balance between coverage and practicality
-
-## Output Format
-
-Provide code examples with:
-- Test framework setup
-- Test cases
-- Mock/stub examples
-- Expected outputs
-```
-
 ---
 
 ## Skill 结构
@@ -107,11 +77,16 @@ Provide code examples with:
 
 ```yaml
 ---
-name: my-skill              # Skill 名称（必填）
-description: Skill description  # 描述（必填）
-version: 1.0.0             # 版本（可选）
-author: Your Name          # 作者（可选）
-tags: [testing, typescript]  # 标签（可选）
+name: my-skill                    # Skill 名称（必填）
+description: Skill description    # 描述（必填）
+
+# 高级选项：
+allowedTools: Read, Grep, Bash    # 工具白名单，逗号分隔（可选）
+context: fork                     # 执行模式：'inline' 或 'fork'（可选）
+agent: code-reviewer              # Fork 模式下使用的 Agent 类型（可选）
+paths: "src/**/*.ts,*.test.js"    # 条件激活模式（可选）
+userInvocable: true               # 允许用户斜杠命令调用（默认：true）
+modelInvocable: true              # 允许模型调用（默认：true）
 ---
 ```
 
@@ -151,14 +126,6 @@ await skillManager.addSkill('github:username/repo', {
 });
 ```
 
-### 从 GitLab 安装
-
-```typescript
-await skillManager.addSkill('gitlab:username/repo', {
-  global: false,
-});
-```
-
 ### 安装选项说明
 
 ```typescript
@@ -169,30 +136,6 @@ interface AddSkillOptions {
   name?: string;        // 自定义 Skill 文件夹名称
   targetDir?: string;   // 自定义安装目标目录（覆盖 global/claude 设置）
 }
-```
-
-### 预览再安装
-
-```typescript
-// 预览 Skill
-const preview = await skillManager.previewSkills('github:username/repo');
-console.log('发现的 Skills:', preview.skills);
-
-// 选择性安装
-await skillManager.installFromPreview(
-  preview,
-  [
-    preview.skills[0],  // 只安装第一个
-  ],
-  'github:username/repo',
-  {
-    global: false,     // 可选：安装选项
-    overwrite: false,
-  }
-);
-
-// 清理预览临时文件
-skillManager.cleanupPreview(preview);
 ```
 
 ---
@@ -234,31 +177,127 @@ skills.forEach(skill => {
 await skillManager.removeSkill('testing-expert');
 ```
 
-### 其他实用方法
+---
+
+## 高级功能
+
+### Fork 执行模式
+
+Skill 可以在隔离的子 Agent 中运行，用于复杂任务：
+
+```markdown
+---
+name: complex-analysis
+description: Perform complex code analysis
+context: fork                    # 在隔离的子 Agent 中运行
+agent: code-reviewer             # 使用特定的 Agent 类型
+allowedTools: Read, Grep, Glob   # 限制可用工具
+---
+
+Analyze the codebase structure and provide recommendations...
+```
+
+**Fork 执行的优势：**
+- 与主对话完全隔离
+- 通过 `allowedTools` 限制工具权限
+- 针对特定任务使用专门的 Agent 类型
+- 更清晰的职责分离
+
+### 工具白名单
+
+控制 Skill 可以访问哪些工具：
+
+```markdown
+---
+name: safe-reviewer
+description: Code reviewer with limited tool access
+allowedTools: Read, Grep         # 只允许读取和搜索工具
+---
+
+You can only read files and search content. You cannot modify files or execute commands.
+```
+
+当指定了 `allowedTools` 时：
+- Skill 执行期间只有列出的工具可用
+- 提供基于能力的权限控制
+- 在 `inline` 和 `fork` 执行模式下都有效
+
+### 条件激活
+
+Skill 可以根据文件路径自动激活：
+
+```markdown
+---
+name: typescript-expert
+description: TypeScript specialist
+paths: "src/**/*.ts,*.tsx"       # 处理 TypeScript 文件时激活
+---
+
+You are a TypeScript expert. Provide type-safe solutions...
+```
+
+以编程方式激活 Skill：
 
 ```typescript
-// 获取单个 Skill
-const skill = skillManager.getSkill('testing-expert');
-if (skill) {
-  console.log(`Skill: ${skill.name}`);
-  console.log(`描述: ${skill.description}`);
-  console.log(`来源: ${skill.source}`);
-  console.log(`路径: ${skill.path}`);
-}
+// 当用户打开/修改文件时
+const activated = skillManager.activateSkillsForPaths([
+  'src/components/Button.tsx',
+  'src/utils/helpers.ts'
+]);
+console.log('Activated skills:', activated);
 
-// 获取加载错误
-const errors = skillManager.getErrors();
-errors.forEach(error => {
-  console.error(`[${error.path}] ${error.message}`);
+// 只获取已激活的 Skills
+const activeSkills = skillManager.getSkills({ activeOnly: true });
+
+// 检查 Skill 是否已激活
+if (skillManager.isSkillActive('typescript-expert')) {
+  // Skill 可用
+}
+```
+
+### Bundled Skills
+
+创建 TypeScript 编码的 Skill，实现动态行为：
+
+```typescript
+import { registerBundledSkill, createBundledSkill } from 'oricore';
+
+// 注册简单的 bundled skill
+registerBundledSkill({
+  name: 'dynamic-helper',
+  description: 'A skill with dynamic content',
+  prompt: async (args, context) => {
+    const cwd = context.cwd;
+    const files = await context.apply({
+      hook: 'glob',
+      args: [`${cwd}/src/**/*.ts`],
+      memo: [],
+      type: PluginHookType.SeriesMerge,
+    });
+    return `You are helping with ${files.length} TypeScript files...`;
+  },
+  allowedTools: ['Read', 'Grep'],
+  context: 'fork',
 });
 
-// 读取 Skill 内容（不包含 frontmatter）
-const body = await skillManager.readSkillBody(skill);
-console.log(body);
-
-// 移除 Skill（指定目录）
-await skillManager.removeSkill('testing-expert', '/custom/path');
+// 或者分开创建和注册
+const mySkill = createBundledSkill({
+  name: 'my-skill',
+  description: 'My custom skill',
+  prompt: 'You are a helpful assistant...',
+  aliases: ['ms', 'my'],           // 替代名称
+  whenToUse: 'Use this when...',   // 给模型的使用指导
+  userInvocable: true,
+  modelInvocable: true,
+});
 ```
+
+**Bundled Skill 特性：**
+- 通过 `getPrompt` 函数动态生成提示词
+- 通过 `isEnabled` 条件启用
+- 别名用于替代调用名称
+- 嵌入参考文件
+- 完整的 TypeScript 类型安全
 
 ---
 
@@ -268,11 +307,12 @@ await skillManager.removeSkill('testing-expert', '/custom/path');
 
 ```typescript
 enum SkillSource {
-  Plugin = 'plugin',           // 插件提供的 Skill
-  GlobalClaude = 'global-claude',   // Claude 全局目录 (~/.claude/skills/)
-  Global = 'global',           // OriCore 全局目录 (~/.oricore/skills/)
-  ProjectClaude = 'project-claude', // Claude 项目目录 (.claude/skills/)
-  Project = 'project',         // OriCore 项目目录 (.oricore/skills/)
+  Builtin = 'builtin',           // 内置 bundled skills
+  Plugin = 'plugin',             // 插件提供的 Skill
+  GlobalClaude = 'global-claude',     // Claude 全局目录 (~/.claude/skills/)
+  Global = 'global',             // OriCore 全局目录 (~/.oricore/skills/)
+  ProjectClaude = 'project-claude',   // Claude 项目目录 (.claude/skills/)
+  Project = 'project',           // OriCore 项目目录 (.oricore/skills/)
 }
 ```
 
@@ -280,60 +320,116 @@ enum SkillSource {
 
 Skill 按以下顺序加载（后面的会覆盖前面的同名 Skill）：
 
-1. **Plugin** - 插件提供的 Skill
-2. **GlobalClaude** - Claude 全局 Skill (`~/.claude/skills/`)
-3. **Global** - OriCore 全局 Skill (`~/.oricore/skills/`)
-4. **ProjectClaude** - Claude 项目 Skill (`.claude/skills/`)
-5. **Project** - OriCore 项目 Skill (`.oricore/skills/`)
+1. **Builtin** - 内置 bundled skills
+2. **Plugin** - 插件提供的 Skill
+3. **GlobalClaude** - Claude 全局 Skill (`~/.claude/skills/`)
+4. **Global** - OriCore 全局 Skill (`~/.oricore/skills/`)
+5. **ProjectClaude** - Claude 项目 Skill (`.claude/skills/`)
+6. **Project** - OriCore 项目 Skill (`.oricore/skills/`)
 
 ---
 
 ## 完整示例
 
-### 1. 创建 Skill
+### 方式一：基于文件的 Skill（推荐）
 
-创建 `.oricore/skills/ts-refactoring/SKILL.md`：
+**重要**：Skill 文件必须在引擎初始化**之前**就存在，才能被自动加载。
+
+#### 步骤 1：创建 Skill 文件
+
+在运行代码**之前**，先创建 `.oricore/skills/security-audit/SKILL.md`：
 
 ```markdown
 ---
-name: ts-refactoring
-description: TypeScript code refactoring specialist
+name: security-audit
+description: Security audit specialist for Node.js projects
+context: fork
+agent: security-expert
+allowedTools: Read, Grep, Glob
+userInvocable: true
+modelInvocable: true
+paths: "package.json,package-lock.json"
 ---
 
-You are a TypeScript refactoring expert. Focus on:
+You are a security audit specialist. Focus on:
 
-## Refactoring Principles
+## Audit Checklist
 
-1. **Improve readability** - Make code self-documenting
-2. **Reduce complexity** - Simplify complex logic
-3. **Enhance maintainability** - Easier to modify
-4. **Preserve behavior** - Same functionality, better code
-5. **Leverage TypeScript** - Use type system effectively
+1. **Dependency vulnerabilities**
+   - Check for known vulnerable packages
+   - Review outdated dependencies
 
-## Refactoring Steps
+2. **Code security patterns**
+   - SQL injection risks
+   - XSS vulnerabilities
+   - Unsafe eval usage
 
-1. Identify code smells
-2. Suggest specific improvements
-3. Explain why each change helps
-4. Provide before/after examples
-5. Suggest testing approach
+3. **Configuration issues**
+   - Exposed secrets
+   - Weak security headers
+   - Missing CSRF protection
 
-## Common Patterns
+## Output Format
 
-- Extract functions/methods
-- Rename for clarity
-- Reduce nesting
-- Use appropriate types
-- Eliminate duplication
+Provide findings as:
+- Severity level (Critical/High/Medium/Low)
+- Specific location
+- Recommended fix with code example
 ```
 
-### 2. 使用 Skill
+#### 步骤 2：初始化引擎并使用 Skill
 
 ```typescript
 import { createEngine } from 'oricore';
 
 const engine = createEngine({
-  productName: 'RefactorTool',
+  productName: 'SecureCode',
+  version: '1.0.0',
+});
+
+// Skills 在初始化期间自动加载
+await engine.initialize({
+  model: 'deepseek/deepseek-chat',
+  provider: {
+    deepseek: {
+      options: {
+        apiKey: 'your-key',
+      },
+    },
+  },
+});
+
+// 验证 skill 是否已加载
+const skillManager = engine.getContext().skillManager;
+const skills = skillManager.getSkills();
+console.log('已加载的 skills:', skills.map(s => s.name));
+// 输出应该包含: ['security-audit', ...]
+
+// 根据当前文件激活 Skills（用于条件激活）
+skillManager.activateSkillsForPaths(['package.json', 'src/app.ts']);
+
+// 使用 Skill - 将在 Fork 模式下运行，工具受限
+const result = await engine.sendMessage({
+  message: 'Run security-audit on this project',
+  write: true,
+});
+
+console.log(result.data.text);
+
+await engine.shutdown();
+```
+
+### 方式二：动态安装 Skill
+
+当你需要在运行时以编程方式添加 skills 时使用：
+
+```typescript
+import { createEngine } from 'oricore';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const engine = createEngine({
+  productName: 'SecureCode',
   version: '1.0.0',
 });
 
@@ -348,66 +444,74 @@ await engine.initialize({
   },
 });
 
-// 使用 Skill
-const result = await engine.sendMessage({
-  message: '使用 ts-refactoring 技能重构这个函数',
-  write: true,
-});
+// 选项 A：从本地目录安装
+const skillManager = engine.getContext().skillManager;
 
-console.log(result.data.text);
+// 首先，创建 skill 文件
+const skillDir = path.join(process.cwd(), '.oricore', 'skills', 'my-skill');
+fs.mkdirSync(skillDir, { recursive: true });
+fs.writeFileSync(
+  path.join(skillDir, 'SKILL.md'),
+  `---
+name: my-skill
+description: My custom skill
+---
+
+You are a helpful assistant specialized in...
+`
+);
+
+// 然后安装它
+await skillManager.addSkill(skillDir, { global: false });
+
+// 验证安装
+const skill = skillManager.getSkill('my-skill');
+if (skill) {
+  console.log('Skill 已安装:', skill.name);
+}
+
+// 选项 B：从 GitHub 安装
+await skillManager.addSkill('github:username/repo', {
+  global: false,
+  name: 'github-skill',
+});
 
 await engine.shutdown();
 ```
 
----
+### 方式三：Bundled Skills（程序化）
 
-## 高级功能
-
-### 动态加载 Skill
+适用于需要动态行为的 skills：
 
 ```typescript
-const skillManager = new SkillManager({ context });
+import { createEngine, registerBundledSkill } from 'oricore';
 
-// 从多个来源加载
-await Promise.all([
-  skillManager.addSkill('github:user/repo1'),
-  skillManager.addSkill('gitlab:user/repo2'),
-  skillManager.addSkill('/local/path/skill3'),
-]);
-```
+// 在初始化引擎**之前**注册 bundled skill
+registerBundledSkill({
+  name: 'dynamic-analyzer',
+  description: '动态分析项目结构',
+  prompt: async (args, context) => {
+    const files = await context.apply({
+      hook: 'glob',
+      args: [`${context.cwd}/src/**/*.ts`],
+      memo: [],
+      type: PluginHookType.SeriesMerge,
+    });
+    return `You are analyzing a project with ${files.length} TypeScript files. Args: ${args}`;
+  },
+  allowedTools: ['Read', 'Grep', 'Glob'],
+  context: 'fork',
+  userInvocable: true,
+  modelInvocable: true,
+});
 
-### Skill 错误处理
+const engine = createEngine({...});
+await engine.initialize({...});
 
-```typescript
-const result = await skillManager.addSkill('github:user/repo');
-
-if (result.errors?.length) {
-  console.error('安装失败:', result.errors);
-}
-
-if (result.installed?.length) {
-  console.log('已安装:', result.installed);
-}
-
-if (result.skipped?.length) {
-  console.log('已跳过:', result.skipped);
-  // 输出示例: [{ name: 'my-skill', reason: 'already exists' }]
-}
-```
-
-### 安装返回值说明
-
-```typescript
-interface AddSkillResult {
-  installed: SkillMetadata[];              // 成功安装的 Skills
-  skipped: { name: string; reason: string }[];  // 跳过的 Skills（已存在）
-  errors: SkillError[];                    // 安装失败的错误
-}
-
-interface SkillError {
-  path: string;
-  message: string;
-}
+// Bundled skill 自动可用
+const result = await engine.sendMessage({
+  message: 'Use dynamic-analyzer to check the codebase',
+});
 ```
 
 ---
@@ -419,6 +523,9 @@ interface SkillError {
 3. **结构化内容** - 使用章节和标题组织
 4. **提供示例** - 包含输入输出示例
 5. **版本控制** - 使用 Git 管理 Skill
+6. **安全性** - 使用 `allowedTools` 限制能力
+7. **复杂任务用 Fork** - 复杂、隔离的任务使用 `context: fork`
+8. **条件激活** - 使用 `paths` 实现上下文感知的 Skills
 
 ---
 

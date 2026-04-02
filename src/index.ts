@@ -56,8 +56,20 @@ export type {
   SkillPreview,
   PreviewSkillsResult,
   AddSkillResult,
+  SkillContext,
 } from './skill/skill';
 export { SkillSource } from './skill/skill';
+
+// Bundled skills
+export {
+  bundledSkillRegistry,
+  registerBundledSkill,
+  createBundledSkill,
+  bundledSkillToMetadata,
+} from './skill/bundled';
+export type {
+  BundledSkillDefinition,
+} from './skill/bundled';
 
 // Loop result type (for sendMessage return value)
 export type { LoopResult } from './core/loop';

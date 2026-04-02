@@ -51,9 +51,6 @@ export async function resolveTools(opts: ResolveToolsOpts) {
     createGlobTool({ cwd }),
     createGrepTool({ cwd }),
     createFetchTool({ model, fetch: opts.context.fetch }),
-    ...(hasSkills
-      ? [createSkillTool({ skillManager: opts.context.skillManager! })]
-      : []),
   ];
   const askUserQuestionTools = opts.askUserQuestion
     ? [createAskUserQuestionTool()]
@@ -90,7 +87,7 @@ export async function resolveTools(opts: ResolveToolsOpts) {
 
   const mcpTools = await getMcpTools(opts.context);
 
-  const allTools = [
+  let allTools = [
     ...readonlyTools,
     ...askUserQuestionTools,
     ...writeTools,
@@ -98,6 +95,19 @@ export async function resolveTools(opts: ResolveToolsOpts) {
     ...backgroundTools,
     ...mcpTools,
   ];
+
+  // Add skill tool if skills are available
+  // Note: skill tool is added after initial tool list so it can reference allTools for fork execution
+  if (hasSkills) {
+    const skillTool = createSkillTool({
+      skillManager: opts.context.skillManager!,
+      context: opts.context,
+      tools: allTools,
+      sessionId: opts.sessionId,
+      signal: opts.signal,
+    });
+    allTools = [...allTools, skillTool];
+  }
 
   // 1. First, execute plugin hook to allow plugins to add/modify tools
   let availableTools = allTools;

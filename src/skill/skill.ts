@@ -6,6 +6,11 @@ import type { Context } from '../core/context';
 import type { Paths } from '../core/paths';
 import { PluginHookType } from '../core/plugin';
 import { safeFrontMatter } from '../utils/safeFrontMatter';
+import {
+  bundledSkillRegistry,
+  bundledSkillToMetadata,
+  type BundledSkillDefinition,
+} from './bundled';
 
 /**
  * Check if a directory entry is a directory or a symlink pointing to a directory.
@@ -28,13 +33,48 @@ export enum SkillSource {
   Global = 'global',
   ProjectClaude = 'project-claude',
   Project = 'project',
+  Builtin = 'builtin',
 }
+
+export type SkillContext = 'inline' | 'fork';
 
 export interface SkillMetadata {
   name: string;
   description: string;
   path: string;
   source: SkillSource;
+  /**
+   * Tools that this skill is allowed to use.
+   * If specified, only these tools will be available when the skill executes.
+   * Example: ['Read', 'Grep', 'Bash']
+   */
+  allowedTools?: string[];
+  /**
+   * Execution context for the skill.
+   * - 'inline': Skill content is injected into current conversation (default)
+   * - 'fork': Skill runs in an isolated sub-agent
+   */
+  context?: SkillContext;
+  /**
+   * Agent type to use when context is 'fork'.
+   * If not specified, defaults to a general-purpose agent.
+   */
+  agent?: string;
+  /**
+   * File path patterns that trigger this skill's availability.
+   * Example: ['src/asterisk/asterisk.ts', '*.test.js']
+   */
+  paths?: string[];
+  /**
+   * Whether this skill can be invoked by users via slash commands.
+   * @default true
+   */
+  userInvocable?: boolean;
+  /**
+   * Whether this skill can be invoked by the model via SkillTool.
+   * @default true
+   */
+  modelInvocable?: boolean;
 }
 
 export interface SkillError {
@@ -86,26 +126,149 @@ export class SkillManager {
   private errors: SkillError[] = [];
   private paths: Paths;
   private context: Context;
+  /**
+   * Tracks which skills are currently "active" based on file operations.
+   * Skills with `paths` frontmatter are activated when matching files are accessed.
+   */
+  private activeSkillNames: Set<string> = new Set();
+  /**
+   * Maps alias names to original skill names for bundled skills.
+   */
+  private aliasMap: Map<string, string> = new Map();
 
   constructor(opts: SkillManagerOpts) {
     this.context = opts.context;
     this.paths = opts.context.paths;
   }
 
-  getSkills(): SkillMetadata[] {
-    return Array.from(this.skillsMap.values());
+  /**
+   * Get all loaded skills.
+   * @param options Filter options
+   * @returns Array of skill metadata
+   */
+  getSkills(options?: {
+    /** Only return skills that are user-invocable */
+    userInvocable?: boolean;
+    /** Only return skills that are model-invocable */
+    modelInvocable?: boolean;
+    /** Only return active skills (those with matching paths) */
+    activeOnly?: boolean;
+  }): SkillMetadata[] {
+    let skills = Array.from(this.skillsMap.values());
+
+    if (options?.userInvocable !== undefined) {
+      skills = skills.filter(
+        (s) => (s.userInvocable ?? true) === options.userInvocable,
+      );
+    }
+
+    if (options?.modelInvocable !== undefined) {
+      skills = skills.filter(
+        (s) => (s.modelInvocable ?? true) === options.modelInvocable,
+      );
+    }
+
+    if (options?.activeOnly) {
+      skills = skills.filter((s) => this.activeSkillNames.has(s.name));
+    }
+
+    return skills;
   }
 
+  /**
+   * Get a specific skill by name.
+   * Automatically resolves aliases to the original skill.
+   * @param name Skill name or alias
+   * @returns Skill metadata or undefined if not found
+   */
   getSkill(name: string): SkillMetadata | undefined {
-    return this.skillsMap.get(name);
+    // Check direct name first
+    const skill = this.skillsMap.get(name);
+    if (skill) return skill;
+
+    // Check if it's an alias
+    const originalName = this.aliasMap.get(name);
+    if (originalName) {
+      return this.skillsMap.get(originalName);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Check if a skill is active (has matching paths for current context).
+   * @param name Skill name
+   */
+  isSkillActive(name: string): boolean {
+    return this.activeSkillNames.has(name);
+  }
+
+  /**
+   * Activate skills based on file paths.
+   * Skills with `paths` frontmatter that match the given paths will be activated.
+   * @param filePaths Array of file paths to check
+   * @returns Array of newly activated skill names
+   */
+  activateSkillsForPaths(filePaths: string[]): string[] {
+    const newlyActivated: string[] = [];
+    const minimatch = require('minimatch');
+
+    for (const [name, skill] of this.skillsMap) {
+      if (skill.paths && skill.paths.length > 0) {
+        const isMatch = skill.paths.some((pattern) =>
+          filePaths.some((filePath) => minimatch(filePath, pattern)),
+        );
+
+        if (isMatch && !this.activeSkillNames.has(name)) {
+          this.activeSkillNames.add(name);
+          newlyActivated.push(name);
+        }
+      }
+    }
+
+    return newlyActivated;
+  }
+
+  /**
+   * Clear all active skill activations.
+   * Useful when switching contexts or projects.
+   */
+  clearActiveSkills(): void {
+    this.activeSkillNames.clear();
+  }
+
+  /**
+   * Get all skills that have path-based conditional activation.
+   * @returns Array of skills with paths defined
+   */
+  getConditionalSkills(): SkillMetadata[] {
+    return Array.from(this.skillsMap.values()).filter(
+      (s) => s.paths && s.paths.length > 0,
+    );
   }
 
   getErrors(): SkillError[] {
     return this.errors;
   }
 
-  async readSkillBody(skill: SkillMetadata): Promise<string> {
+  /**
+   * Read the body content of a skill.
+   * For file-based skills, reads from disk.
+   * For bundled skills, generates content via getPrompt.
+   */
+  async readSkillBody(skill: SkillMetadata, args: string = ''): Promise<string> {
     try {
+      // Handle bundled skills
+      if (skill.path.startsWith('bundled://')) {
+        const bundledName = skill.path.replace('bundled://', '');
+        const bundledSkill = bundledSkillRegistry.get(bundledName);
+        if (!bundledSkill) {
+          throw new Error(`Bundled skill "${bundledName}" not found in registry`);
+        }
+        return await bundledSkill.getPrompt(args, this.context);
+      }
+
+      // Handle file-based skills
       const content = fs.readFileSync(skill.path, 'utf-8');
       const { body } = safeFrontMatter(content, skill.path);
       return body;
@@ -116,9 +279,31 @@ export class SkillManager {
     }
   }
 
+  /**
+   * Get a bundled skill definition by name.
+   * @param name Bundled skill name
+   * @returns Bundled skill definition or undefined if not found
+   */
+  getBundledSkill(name: string): BundledSkillDefinition | undefined {
+    return bundledSkillRegistry.get(name);
+  }
+
+  /**
+   * Register a bundled skill programmatically.
+   * @param definition Bundled skill definition
+   */
+  registerBundledSkill(definition: BundledSkillDefinition): void {
+    bundledSkillRegistry.register(definition);
+    // Reload to include the new skill
+    this.loadBuiltinSkills();
+  }
+
   async loadSkills(): Promise<void> {
     this.skillsMap.clear();
     this.errors = [];
+
+    // Load builtin/bundled skills first
+    this.loadBuiltinSkills();
 
     const pluginSkills = await this.context.apply({
       hook: 'skill',
@@ -166,6 +351,27 @@ export class SkillManager {
 
     const projectDir = path.join(this.paths.projectConfigDir, 'skills');
     this.loadSkillsFromDirectory(projectDir, SkillSource.Project);
+  }
+
+  /**
+   * Load builtin/bundled skills from the registry.
+   */
+  private loadBuiltinSkills(): void {
+    // Clear alias map when reloading
+    this.aliasMap.clear();
+
+    const bundledSkills = bundledSkillRegistry.getAll(this.context);
+    for (const skill of bundledSkills) {
+      const metadata = bundledSkillToMetadata(skill, SkillSource.Builtin);
+      this.skillsMap.set(skill.name, metadata);
+
+      // Register aliases in the alias map
+      if (skill.aliases) {
+        for (const alias of skill.aliases) {
+          this.aliasMap.set(alias, skill.name);
+        }
+      }
+    }
   }
 
   private loadSkillsFromDirectory(
@@ -225,6 +431,12 @@ export class SkillManager {
       const { attributes } = safeFrontMatter<{
         name?: string;
         description?: string;
+        allowedTools?: string | string[];
+        context?: string;
+        agent?: string;
+        paths?: string | string[];
+        userInvocable?: boolean;
+        modelInvocable?: boolean;
       }>(content, skillPath);
 
       if (!attributes.name) {
@@ -267,10 +479,28 @@ export class SkillManager {
         return null;
       }
 
+      // Parse allowedTools - supports both string and array formats
+      const allowedTools = this.parseStringArrayField(attributes.allowedTools);
+
+      // Parse context (inline or fork)
+      const context: SkillContext | undefined =
+        attributes.context === 'inline' || attributes.context === 'fork'
+          ? attributes.context
+          : undefined;
+
+      // Parse paths - supports both string and array formats
+      const paths = this.parseStringArrayField(attributes.paths);
+
       return {
         name: attributes.name,
         description: attributes.description,
         path: skillPath,
+        allowedTools,
+        context,
+        agent: attributes.agent,
+        paths,
+        userInvocable: attributes.userInvocable ?? true,
+        modelInvocable: attributes.modelInvocable ?? true,
       };
     } catch (error) {
       this.errors.push({
@@ -282,6 +512,32 @@ export class SkillManager {
       });
       return null;
     }
+  }
+
+  /**
+   * Parse a field that can be either a comma-separated string or an array of strings.
+   * @param value The value to parse
+   * @returns Array of strings or undefined if empty
+   */
+  private parseStringArrayField(
+    value: string | string[] | undefined,
+  ): string[] | undefined {
+    if (!value) return undefined;
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    }
+
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    }
+
+    return undefined;
   }
 
   async addSkill(
